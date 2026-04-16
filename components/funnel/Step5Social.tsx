@@ -125,7 +125,7 @@ export default function Step5Social(props: {
         props.setUserData(next);
 
         if (json.data?.allCompleted) {
-          props.setCurrentStep(6);
+          props.setCurrentStep(7);
         }
       }
     } finally {

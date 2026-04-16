@@ -72,13 +72,13 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-export default function Step3LMS(props: {
+export default function Step4VideoLearning(props: {
   userId: string | null;
   userData: Partial<IUser> & { _id?: string; id?: string };
   setUserData: (u: Partial<IUser> & { _id?: string; id?: string }) => void;
   setCurrentStep: (step: number) => void;
+  showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
-
   const [ai, setAi] = useState<CourseState>({ progressPercent: 0, watchedSeconds: 0, completed: false });
   const [soft, setSoft] = useState<CourseState>({ progressPercent: 0, watchedSeconds: 0, completed: false });
   const [celebrate, setCelebrate] = useState(false);
@@ -130,15 +130,21 @@ export default function Step3LMS(props: {
     }
   }
 
+  const allCompleted = ai.completed && soft.completed;
+  const alreadyCompleted =
+    (props.userData?.courses?.aiFundamentals?.progressPercent ?? 0) >= 100 &&
+    (props.userData?.courses?.softSkills?.progressPercent ?? 0) >= 100;
+
   useEffect(() => {
-    if (!celebrate && ai.completed && soft.completed) {
+    if (!celebrate && allCompleted && !alreadyCompleted) {
       setCelebrate(true);
+      props.showToast("Progress saved", "success");
       const t1 = window.setTimeout(() => {
         props.setCurrentStep(5);
       }, 1000);
       return () => window.clearTimeout(t1);
     }
-  }, [ai.completed, celebrate, props.setCurrentStep, soft.completed]);
+  }, [allCompleted, alreadyCompleted, celebrate, props, ai.completed, soft.completed]);
 
   return (
     <section className="relative px-6 py-16">
@@ -148,29 +154,57 @@ export default function Step3LMS(props: {
         transition={{ duration: 0.5 }}
         className="mx-auto w-full max-w-6xl"
       >
-        <h2 className="text-2xl font-bold text-white sm:text-3xl">Free Courses (Watch to 100%)</h2>
+        <div
+          className="inline-flex items-center rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-[12px] font-semibold tracking-[0.1em]"
+          style={{ color: "#f4e401" }}
+        >
+          Step 4 of 7
+        </div>
+
+        <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">Complete Your Learning</h2>
         <p className="mt-2 text-cream/90">
           Complete both short courses to unlock your certificate and enter the lucky draw.
         </p>
 
-        <div className="relative mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <CourseCard
-            title="AI Fundamentals"
-            duration="30 mins"
-            courseKey="aiFundamentals"
-            progress={ai.progressPercent}
-            completed={ai.completed}
-            onTimeUpdate={onTimeUpdate}
-          />
-          <CourseCard
-            title="Soft Skills for the Future"
-            duration="20 mins"
-            courseKey="softSkills"
-            progress={soft.progressPercent}
-            completed={soft.completed}
-            onTimeUpdate={onTimeUpdate}
-          />
-        </div>
+        {alreadyCompleted ? (
+          <div className="mt-8 rounded-2xl border border-[#22c55e]/30 bg-[#22c55e]/10 p-6">
+            <div className="text-xl font-extrabold text-white">Courses Already Completed</div>
+            <div className="mt-2 text-sm font-medium text-[#f1dcba]/80">
+              Your learning progress has been restored. Continue to unlock your certificate.
+            </div>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02, boxShadow: "0 0 60px rgba(244,228,1,0.55)" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => props.setCurrentStep(5)}
+              className="mt-6 rounded-full px-8 py-4 text-[16px] font-bold text-[#1a1a2e]"
+              style={{ background: "#f4e401", boxShadow: "0 0 40px rgba(244,228,1,0.35)" }}
+            >
+              Continue →
+            </motion.button>
+          </div>
+        ) : (
+          <div className="relative mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+            <CourseCard
+              title="AI Fundamentals"
+              duration="30 mins"
+              courseKey="aiFundamentals"
+              progress={ai.progressPercent}
+              completed={ai.completed}
+              watchedSeconds={ai.watchedSeconds}
+              onTimeUpdate={onTimeUpdate}
+            />
+            <CourseCard
+              title="Soft Skills for the Future"
+              duration="20 mins"
+              courseKey="softSkills"
+              progress={soft.progressPercent}
+              completed={soft.completed}
+              watchedSeconds={soft.watchedSeconds}
+              onTimeUpdate={onTimeUpdate}
+            />
+          </div>
+        )}
 
         <ConfettiBurst show={celebrate} />
       </motion.div>
@@ -184,12 +218,37 @@ function CourseCard(props: {
   courseKey: CourseKey;
   progress: number;
   completed: boolean;
+  watchedSeconds: number;
   onTimeUpdate: (courseKey: CourseKey, video: HTMLVideoElement) => void;
 }) {
   const src =
     props.courseKey === "aiFundamentals"
       ? process.env.NEXT_PUBLIC_AI_FUNDAMENTALS_URL
       : process.env.NEXT_PUBLIC_SOFT_SKILLS_URL;
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !props.watchedSeconds) return;
+    const applyTime = () => {
+      try {
+        if (video.currentTime < props.watchedSeconds) {
+          video.currentTime = props.watchedSeconds;
+        }
+      } catch {
+        // ignore seek errors
+      }
+    };
+
+    if (video.readyState >= 1) {
+      applyTime();
+      return;
+    }
+
+    video.addEventListener("loadedmetadata", applyTime, { once: true });
+    return () => video.removeEventListener("loadedmetadata", applyTime);
+  }, [props.watchedSeconds]);
 
   return (
     <div className="rounded-2xl border border-secondary/40 bg-secondary/10 p-5">
@@ -205,6 +264,7 @@ function CourseCard(props: {
 
       <div className="mt-4">
         <video
+          ref={videoRef}
           className="w-full rounded-xl border border-white/10 bg-black/20"
           controls
           src={src || undefined}
@@ -214,9 +274,7 @@ function CourseCard(props: {
           <p className="mt-2 text-xs text-cream/60">
             Set{" "}
             <span className="font-mono">
-              {props.courseKey === "aiFundamentals"
-                ? "NEXT_PUBLIC_AI_FUNDAMENTALS_URL"
-                : "NEXT_PUBLIC_SOFT_SKILLS_URL"}
+              {props.courseKey === "aiFundamentals" ? "NEXT_PUBLIC_AI_FUNDAMENTALS_URL" : "NEXT_PUBLIC_SOFT_SKILLS_URL"}
             </span>{" "}
             to your signed Azure video URL.
           </p>

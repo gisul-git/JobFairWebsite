@@ -6,6 +6,7 @@ export interface IUser {
   name: string;
   email: string;
   phone: string;
+  address: string;
   collegeOrCompany: string;
   registeredAt: Date;
 
@@ -13,9 +14,13 @@ export interface IUser {
   referredBy?: string | null;
   referralCount: number;
 
+  role: "BDE" | "Fullstack" | null;
+  points: number;
+
   funnel: {
     currentStep: number;
     completedSteps: number[];
+    completedAt?: Date;
   };
 
   courses: {
@@ -44,6 +49,27 @@ export interface IUser {
     google: { verified: boolean; verifiedAt?: Date };
     linkedin: { verified: boolean; accessToken?: string; verifiedAt?: Date };
     instagram: { verified: boolean; accessToken?: string; verifiedAt?: Date };
+  };
+
+  resume: {
+    uploaded: boolean;
+    uploadedAt?: Date;
+    blobUrl?: string;
+    filename?: string;
+  };
+
+  assessment: {
+    role?: string;
+    answers: number[];
+    answersInProgress?: Record<string, number>;
+    lastQuestionIndex?: number;
+    score?: number;
+    correctCount?: number;
+    totalQuestions?: number;
+    timeTaken?: number;
+    startedAt?: Date;
+    submittedAt?: Date;
+    completed: boolean;
   };
 
   luckyDraw: {

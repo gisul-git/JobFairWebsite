@@ -25,12 +25,15 @@ export default function FunnelProgress(props: {
   const currentStep = props.currentStep;
   const goToStep = props.onStepClick ?? (() => {});
   const total = 7;
-  const labels = ["Register", "Learn", "Certify", "Share", "Explore", "Draw", "Done"];
+  const labels = ["Register", "Follow", "Resume", "Learn", "Certify", "Assess", "Done"];
 
-  const progressRatio = Math.max(0, Math.min(1, (currentStep - 1) / (total - 1)));
+  // `currentStep` comes from page-level steps (1..8), where step 2 corresponds to the funnel's "Register".
+  // So we shift by 1 to map page step 2 -> progress step 1.
+  const normalizedStep = Math.min(total, Math.max(1, currentStep - 1));
+  const progressRatio = Math.max(0, Math.min(1, (normalizedStep - 1) / (total - 1)));
 
   return (
-    <div className="sticky top-0 z-20 w-full border-b border-[#f1dcba1a] bg-[#0d0d1acc] backdrop-blur-sm">
+    <div className="sticky top-0 z-20 w-full border-b border-[#f1dcba1a] bg-transparent backdrop-blur-sm">
       <div className="mx-auto w-full max-w-6xl px-4 py-4">
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -49,16 +52,18 @@ export default function FunnelProgress(props: {
 
             {Array.from({ length: total }, (_, idx) => {
               const step = (idx + 1) as number;
-              const isDone = completedSteps.includes(step);
-              const isCurrent = currentStep === step;
+              // Progress step 1 corresponds to page step 2 ("Register").
+              const pageStep = step + 1;
+              const isDone = completedSteps.includes(pageStep);
+              const isCurrent = normalizedStep === step;
 
               return (
                 <div key={step} className="flex min-w-[54px] flex-col items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => goToStep(step as any)}
+                    onClick={() => goToStep(pageStep as any)}
                     className="group relative flex h-10 w-10 items-center justify-center rounded-full"
-                    aria-label={`Go to step ${step}`}
+                    aria-label={`Go to step ${pageStep}`}
                   >
                     <motion.div
                       layout

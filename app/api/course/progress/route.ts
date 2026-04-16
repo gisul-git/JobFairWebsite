@@ -80,9 +80,10 @@ export async function POST(req: Request): Promise<Response> {
   const softDone = Boolean(user.courses?.softSkills?.completed);
 
   if (aiDone && softDone) {
-    user.funnel.currentStep = 4;
-    if (!user.funnel.completedSteps.includes(3)) {
-      user.funnel.completedSteps.push(3);
+    // Video learning completed -> certificate step
+    user.funnel.currentStep = 5;
+    if (!user.funnel.completedSteps.includes(4)) {
+      user.funnel.completedSteps.push(4);
     }
     user.luckyDraw.eligible = true;
     await user.save();

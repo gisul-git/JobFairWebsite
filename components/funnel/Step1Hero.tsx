@@ -22,6 +22,7 @@ function rand(min: number, max: number) {
 
 export default function Step1Hero(props: {
   setCurrentStep: (step: number) => void;
+  onStart?: () => void;
 }) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -191,7 +192,13 @@ export default function Step1Hero(props: {
             type="button"
             whileHover={{ scale: 1.05, boxShadow: "0 0 80px rgba(244,228,1,0.7)" }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => props.setCurrentStep(2)}
+            onClick={() => {
+              if (props.onStart) {
+                props.onStart();
+                return;
+              }
+              props.setCurrentStep(2);
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.6 }}

@@ -85,7 +85,8 @@ export async function POST(req: Request): Promise<Response> {
     user.social.instagram.verified;
 
   if (allCompleted) {
-    user.funnel.currentStep = 6;
+    // Social actions completed -> HR contact step
+    user.funnel.currentStep = 7;
   }
 
   await user.save();

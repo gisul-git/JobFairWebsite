@@ -16,6 +16,7 @@ export default function Step4Certificate(props: {
   userData: Partial<IUser> & { _id?: string; id?: string };
   setUserData: (u: Partial<IUser> & { _id?: string; id?: string }) => void;
   setCurrentStep: (step: number) => void;
+  showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -62,8 +63,8 @@ export default function Step4Certificate(props: {
     const url = await ensureCertificate();
     if (url) window.open(url, "_blank", "noopener,noreferrer");
 
-    // Placeholder: increment downloadCount via API call later
-    props.setCurrentStep(5);
+    props.showToast("Progress saved", "success");
+    props.setCurrentStep(6);
   }
 
   async function onShareLinkedIn() {
@@ -72,7 +73,8 @@ export default function Step4Certificate(props: {
     shareUrl.searchParams.set("url", url ?? window.location.href);
     window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
 
-    props.setCurrentStep(5);
+    props.showToast("Progress saved", "success");
+    props.setCurrentStep(6);
   }
 
   return (
@@ -84,6 +86,9 @@ export default function Step4Certificate(props: {
         className="mx-auto w-full max-w-4xl"
       >
         <div className="rounded-2xl border border-primary/70 bg-gradient-to-br from-secondary/60 to-dark p-8">
+          <div className="inline-flex items-center rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-[12px] font-semibold tracking-[0.1em] text-[#f4e401]">
+            Step 5 of 7
+          </div>
           <div className="text-sm font-semibold tracking-widest text-cream/90">GISUL</div>
           <h2 className="mt-3 text-3xl font-extrabold text-white">Certificate of Completion</h2>
           <p className="mt-2 text-cream/90">
@@ -96,6 +101,11 @@ export default function Step4Certificate(props: {
               <li>AI Fundamentals</li>
               <li>Soft Skills for the Future</li>
             </ul>
+            {blobUrl ? (
+              <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-white">
+                <iframe src={blobUrl} title="Certificate preview" className="h-[420px] w-full" />
+              </div>
+            ) : null}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-cream/80">
               <div>
                 Issue date: <span className="font-semibold text-white/90">{formatDate(issuedAt)}</span>

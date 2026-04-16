@@ -11,6 +11,7 @@ export interface IUser {
   name: string;
   email: string;
   phone: string;
+  address: string;
   collegeOrCompany: string;
   registeredAt: Date;
 
@@ -18,9 +19,13 @@ export interface IUser {
   referredBy?: string | null;
   referralCount: number;
 
+  role: "BDE" | "Fullstack" | null;
+  points: number;
+
   funnel: {
     currentStep: number;
     completedSteps: number[];
+    completedAt?: Date;
   };
 
   courses: {
@@ -63,6 +68,27 @@ export interface IUser {
     respondedAt?: Date;
   };
 
+  resume: {
+    uploaded: boolean;
+    uploadedAt?: Date;
+    blobUrl?: string;
+    filename?: string;
+  };
+
+  assessment: {
+    role?: string;
+    answers: number[];
+    answersInProgress: Map<string, number>;
+    lastQuestionIndex: number;
+    score?: number;
+    correctCount?: number;
+    totalQuestions?: number;
+    timeTaken?: number;
+    startedAt?: Date;
+    submittedAt?: Date;
+    completed: boolean;
+  };
+
   isAdmin: boolean;
 }
 
@@ -83,8 +109,11 @@ const UserSchema = new Schema<IUser>(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     phone: { type: String, required: true },
+    address: { type: String, required: true },
     collegeOrCompany: { type: String, required: true },
     registeredAt: { type: Date, default: () => new Date() },
+    role: { type: String, enum: ["BDE", "Fullstack", null], default: null },
+    points: { type: Number, default: 0 },
 
     referralCode: { type: String, unique: true },
     referredBy: { type: String, default: null },
@@ -93,6 +122,7 @@ const UserSchema = new Schema<IUser>(
     funnel: {
       currentStep: { type: Number, default: 1 },
       completedSteps: { type: [Number], default: [] },
+      completedAt: { type: Date },
     },
 
     courses: {
@@ -122,6 +152,27 @@ const UserSchema = new Schema<IUser>(
         accessToken: { type: String },
         verifiedAt: { type: Date },
       },
+    },
+
+    resume: {
+      uploaded: { type: Boolean, default: false },
+      uploadedAt: { type: Date },
+      blobUrl: { type: String },
+      filename: { type: String },
+    },
+
+    assessment: {
+      role: { type: String },
+      answers: { type: [Number], default: [] },
+      answersInProgress: { type: Map, of: Number, default: {} },
+      lastQuestionIndex: { type: Number, default: 0 },
+      score: { type: Number },
+      correctCount: { type: Number },
+      totalQuestions: { type: Number },
+      timeTaken: { type: Number },
+      startedAt: { type: Date },
+      submittedAt: { type: Date },
+      completed: { type: Boolean, default: false },
     },
 
     luckyDraw: {

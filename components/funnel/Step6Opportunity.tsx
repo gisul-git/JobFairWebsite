@@ -22,7 +22,7 @@ export default function Step6Opportunity(props: {
       },
     });
 
-    props.setCurrentStep(7);
+    props.setCurrentStep(8);
   }
 
   return (

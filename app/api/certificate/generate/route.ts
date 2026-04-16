@@ -51,6 +51,11 @@ export async function POST(_req: Request): Promise<Response> {
   user.certificate.issued = true;
   user.certificate.issuedAt = new Date();
   user.certificate.blobUrl = blobUrl;
+  user.funnel.currentStep = 6;
+  if (!user.funnel.completedSteps.includes(5)) {
+    user.funnel.completedSteps.push(5);
+  }
+  user.points = (user.points ?? 0) + 15;
   await user.save();
 
   const body: ApiResponse = {
