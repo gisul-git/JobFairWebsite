@@ -1,4 +1,5 @@
 import { connectDB } from "@/lib/mongodb";
+import { getPointsForStep } from "@/lib/points";
 import { sanitizeUser } from "@/lib/sanitize-user";
 import { User } from "@/models/User";
 import type { ApiResponse } from "@/types";
@@ -64,7 +65,7 @@ export async function POST(req: Request): Promise<Response> {
   nextCompleted.add(2);
   user.funnel.completedSteps = Array.from(nextCompleted).sort((a, b) => a - b);
 
-  user.points = (user.points ?? 0) + 10;
+  user.points = getPointsForStep(3);
 
   await user.save();
 

@@ -43,40 +43,6 @@ function formatTime(totalSeconds: number) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function ScoreCircle({ score }: { score: number }) {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - score / 100);
-
-  return (
-    <div className="relative mx-auto flex h-[120px] w-[120px] items-center justify-center">
-      <svg width="120" height="120" viewBox="0 0 120 120" className="absolute inset-0">
-        <circle cx="60" cy="60" r={radius} stroke="rgba(105,82,162,0.2)" strokeWidth="10" fill="none" />
-        <motion.circle
-          cx="60"
-          cy="60"
-          r={radius}
-          stroke="#f4e401"
-          strokeWidth="10"
-          fill="none"
-          strokeLinecap="round"
-          transform="rotate(-90 60 60)"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: dashOffset }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        />
-      </svg>
-      <div className="relative text-center">
-        <div className="text-[36px] font-extrabold text-[#f4e401]">{score}</div>
-        <div className="text-sm font-semibold" style={{ color: "rgba(241,220,186,0.5)" }}>
-          / 100
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Spinner() {
   return (
     <span
@@ -93,6 +59,8 @@ export default function Step6Assessment(props: {
   showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
   const role = props.userData?.role === "BDE" || props.userData?.role === "Fullstack" ? props.userData.role : null;
+  const isBde = role === "BDE";
+  const isFullstack = role === "Fullstack";
 
   const questions: Question[] = useMemo(() => {
     if (role === "BDE") return BDE_QUESTIONS;
@@ -108,7 +76,6 @@ export default function Step6Assessment(props: {
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
   const [submitted, setSubmitted] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-  const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [timeTaken, setTimeTaken] = useState(0);
   const [loadingContinue, setLoadingContinue] = useState(false);
@@ -116,8 +83,23 @@ export default function Step6Assessment(props: {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [resumeBanner, setResumeBanner] = useState<string | null>(null);
   const startTriggeredRef = useRef(false);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [deployedUrl, setDeployedUrl] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submittingProject, setSubmittingProject] = useState(false);
 
   useEffect(() => {
+    if (isFullstack) {
+      setSubmitted(Boolean(props.userData?.assessment?.completed));
+      setAlreadySubmitted(Boolean(props.userData?.assessment?.completed));
+      setGithubUrl(String((props.userData as any)?.assessment?.githubUrl ?? ""));
+      setDeployedUrl(String((props.userData as any)?.assessment?.deployedUrl ?? ""));
+      setNotes(String((props.userData as any)?.assessment?.notes ?? ""));
+      return;
+    }
+
     const storedAnswers = props.userData?.assessment?.answersInProgress ?? {};
     const submittedAnswers = props.userData?.assessment?.answers ?? [];
     const completed = Boolean(props.userData?.assessment?.completed);
@@ -133,7 +115,6 @@ export default function Step6Assessment(props: {
     setCurrentIndex(completed ? 0 : lastIndex);
     setSubmitted(completed);
     setAlreadySubmitted(completed);
-    setScore(Number(props.userData?.assessment?.score ?? 0));
     setCorrectCount(Number(props.userData?.assessment?.correctCount ?? 0));
     setTimeTaken(Number(props.userData?.assessment?.timeTaken ?? 0));
     setResumeBanner(!completed && Object.keys(storedAnswers).length > 0 ? `Resuming your assessment from question ${lastIndex + 1}` : null);
@@ -147,7 +128,7 @@ export default function Step6Assessment(props: {
         setSecondsLeft(remaining);
       }
     }
-  }, [props.userData, role, totalQuestions, totalSeconds]);
+  }, [props.userData, isFullstack, role, totalQuestions, totalSeconds]);
 
   useEffect(() => {
     const nextParticles: Particle[] = Array.from({ length: 90 }, (_, i) => ({
@@ -166,7 +147,7 @@ export default function Step6Assessment(props: {
   }, []);
 
   useEffect(() => {
-    if (!role || submitted || totalSeconds <= 0) return;
+    if (!isBde || submitted || totalSeconds <= 0) return;
     const id = window.setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
@@ -177,16 +158,16 @@ export default function Step6Assessment(props: {
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [role, submitted, totalSeconds]);
+  }, [isBde, submitted, totalSeconds]);
 
   useEffect(() => {
-    if (!submitted && role && secondsLeft === 0 && totalQuestions > 0) {
+    if (isBde && !submitted && role && secondsLeft === 0 && totalQuestions > 0) {
       void handleSubmitAssessment();
     }
-  }, [secondsLeft, submitted, role, totalQuestions]);
+  }, [isBde, secondsLeft, submitted, role, totalQuestions]);
 
   useEffect(() => {
-    if (!role || submitted || startTriggeredRef.current) return;
+    if (!isBde || !role || submitted || startTriggeredRef.current) return;
     if (Object.keys(props.userData?.assessment?.answersInProgress ?? {}).length > 0 || props.userData?.assessment?.startedAt) {
       return;
     }
@@ -199,7 +180,7 @@ export default function Step6Assessment(props: {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
-  }, [props.userData, role, submitted]);
+  }, [isBde, props.userData, role, submitted]);
 
   function selectAnswer(optionIndex: number) {
     const questionId = String(questions[currentIndex]?.id ?? currentIndex + 1);
@@ -239,9 +220,8 @@ export default function Step6Assessment(props: {
 
   async function handleSubmitAssessment() {
     if (submitted) return;
-    const { correct, pct } = calculateResult();
+    const { correct } = calculateResult();
     setCorrectCount(correct);
-    setScore(pct);
     setTimeTaken(totalSeconds - secondsLeft);
     setSubmitted(true);
   }
@@ -287,6 +267,51 @@ export default function Step6Assessment(props: {
     }
   }
 
+  async function submitFullstackProject() {
+    setSubmissionError(null);
+    if (!githubUrl.trim().startsWith("https://github.com/")) {
+      setSubmissionError("Please enter a valid GitHub URL");
+      return;
+    }
+    if (!deployedUrl.trim().startsWith("https://")) {
+      setSubmissionError("Please enter a valid deployed URL");
+      return;
+    }
+
+    setSubmittingProject(true);
+    try {
+      const token = window.localStorage.getItem("gisul_token") ?? window.localStorage.getItem("gisul:sessionToken");
+      if (!token) throw new Error("Missing session token. Please register again.");
+
+      const res = await fetch("/api/assessment/submit", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          role: "Fullstack",
+          githubUrl: githubUrl.trim(),
+          deployedUrl: deployedUrl.trim(),
+          notes: notes.trim(),
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error ?? "Project submission failed");
+      }
+
+      props.setUserData(json.data);
+      props.showToast("Project submitted successfully!", "success");
+      setSubmitted(true);
+      setAlreadySubmitted(true);
+    } catch (e) {
+      setSubmissionError(e instanceof Error ? e.message : "Project submission failed");
+    } finally {
+      setSubmittingProject(false);
+    }
+  }
+
   const activeQuestion = questions[currentIndex];
   const currentAnswer = activeQuestion ? (answers[String(activeQuestion.id)] ?? -1) : -1;
   const progressPct = totalQuestions > 0 ? ((currentIndex + 1) / totalQuestions) * 100 : 0;
@@ -294,7 +319,7 @@ export default function Step6Assessment(props: {
 
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pb-10 pt-[84px] sm:pt-[96px]"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />
@@ -362,6 +387,250 @@ export default function Step6Assessment(props: {
           <div className="mt-10 rounded-2xl border border-white/10 bg-[#1a1a2e] p-8 text-center text-white">
             No role selected. Please go back and choose a role before starting the assessment.
           </div>
+        ) : isFullstack ? (
+          submitted ? (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="mt-10 rounded-2xl border border-[#6952a2]/40 bg-[#1a1a2e] p-8 text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 12 }}
+                className="mx-auto flex h-[100px] w-[100px] items-center justify-center rounded-full border-2 border-[#22c55e]"
+                style={{ background: "rgba(34,197,94,0.15)" }}
+              >
+                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </motion.div>
+
+              <div className="mt-5 text-[28px] font-extrabold text-white">Project Submitted!</div>
+              <div className="mx-auto mt-2 max-w-sm text-sm" style={{ color: "rgba(241,220,186,0.7)" }}>
+                Your submission has been received. Our technical team will review your GitHub repo and deployed project.
+              </div>
+
+              <div
+                className="mx-auto mt-6 max-w-xl rounded-xl p-5 text-left"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(241,220,186,0.10)" }}
+              >
+                <div className="mb-3">
+                  <div className="text-xs font-semibold" style={{ color: "rgba(241,220,186,0.5)" }}>
+                    GitHub:
+                  </div>
+                  <a
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-sm font-semibold"
+                    style={{ color: "#6952a2" }}
+                  >
+                    {githubUrl}
+                  </a>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold" style={{ color: "rgba(241,220,186,0.5)" }}>
+                    Live URL:
+                  </div>
+                  <a
+                    href={deployedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-sm font-semibold"
+                    style={{ color: "#6952a2" }}
+                  >
+                    {deployedUrl}
+                  </a>
+                </div>
+              </div>
+
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02, boxShadow: "0 0 60px rgba(244,228,1,0.55)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => props.setCurrentStep(7)}
+                className="relative mt-8 w-full overflow-hidden rounded-full px-8 py-4 text-[16px] font-bold text-[#1a1a2e]"
+                style={{ background: "#f4e401", boxShadow: "0 0 40px rgba(244,228,1,0.35)" }}
+              >
+                Continue →
+              </motion.button>
+            </motion.div>
+          ) : (
+            <div className="mt-10 grid gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border p-8"
+                style={{ background: "#1a1a2e", borderColor: "rgba(105,82,162,0.4)" }}
+              >
+                <div className="flex items-start gap-4">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" aria-hidden="true">
+                    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" stroke="#f4e401" strokeWidth="2" />
+                    <path d="M14 2v5h5" stroke="#f4e401" strokeWidth="2" />
+                  </svg>
+                  <div>
+                    <div className="text-[22px] font-extrabold text-white">Full Stack Tech Assessment</div>
+                    <div className="text-sm" style={{ color: "rgba(241,220,186,0.6)" }}>
+                      Build a real project and submit your work
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-2">
+                  {[
+                    "Download the problem statement below",
+                    "Read the requirements carefully",
+                    "Build and deploy your project",
+                    "Submit your GitHub repo and live URL",
+                  ].map((text, idx) => (
+                    <div key={text}>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#6952a2] text-xs text-white">
+                          {idx + 1}
+                        </div>
+                        <div className="text-sm" style={{ color: "rgba(241,220,186,0.8)" }}>
+                          {text}
+                        </div>
+                      </div>
+                      {idx < 3 ? (
+                        <div className="ml-[11px] mt-2 h-5 w-0 border-l-2" style={{ borderColor: "rgba(105,82,162,0.3)" }} />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open(
+                      "https://gisulwebsiteproduction.blob.core.windows.net/coursevideo/Gisul%20Fullstack%20Assessment.docx",
+                      "_blank"
+                    );
+                    setHasDownloaded(true);
+                  }}
+                  className="mt-6 w-full rounded-xl border px-4 py-4 text-left"
+                  style={{ background: "#6952a2", borderColor: "#6952a2" }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                        <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" stroke="#fff" strokeWidth="2" />
+                        <path d="M14 2v5h5" stroke="#fff" strokeWidth="2" />
+                      </svg>
+                      <div>
+                        <div className="font-semibold text-white">Gisul Fullstack Assessment.docx</div>
+                        <div className="text-xs" style={{ color: "rgba(241,220,186,0.5)" }}>
+                          Problem Statement • DOCX
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#f4e401]">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                        <path d="M12 3v12" stroke="#f4e401" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M7 10l5 5 5-5" stroke="#f4e401" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Download
+                    </div>
+                  </div>
+                </button>
+
+                {hasDownloaded ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                    style={{
+                      background: "rgba(34,197,94,0.15)",
+                      border: "1px solid rgba(34,197,94,0.30)",
+                      color: "#22c55e",
+                    }}
+                  >
+                    Downloaded!
+                  </motion.div>
+                ) : null}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border p-8"
+                style={{ background: "#1a1a2e", borderColor: "rgba(105,82,162,0.4)" }}
+              >
+                <div className="text-xl font-extrabold text-white">Submit Your Project</div>
+                <div className="mt-1 text-sm" style={{ color: "rgba(241,220,186,0.6)" }}>
+                  Once your project is ready, submit the links below
+                </div>
+
+                <div className="mt-5">
+                  <label className="mb-2 block text-sm font-semibold text-white">GitHub Repository URL</label>
+                  <input
+                    placeholder="https://github.com/yourusername/project-name"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    className="w-full rounded-[10px] border px-4 py-[14px] text-white outline-none transition-colors placeholder:text-[#f1dcba55] focus:border-[#f4e40199] focus:bg-[#f4e4010a]"
+                    style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-semibold text-white">Deployed Project URL</label>
+                  <input
+                    placeholder="https://your-project.vercel.app"
+                    value={deployedUrl}
+                    onChange={(e) => setDeployedUrl(e.target.value)}
+                    className="w-full rounded-[10px] border px-4 py-[14px] text-white outline-none transition-colors placeholder:text-[#f1dcba55] focus:border-[#f4e40199] focus:bg-[#f4e4010a]"
+                    style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-semibold text-white">Additional Notes (optional)</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Any notes about your implementation, tech stack used, or special instructions..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full rounded-[10px] border px-4 py-[14px] text-white outline-none transition-colors placeholder:text-[#f1dcba55] focus:border-[#f4e40199] focus:bg-[#f4e4010a]"
+                    style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                  />
+                </div>
+
+                {submissionError ? (
+                  <div className="mt-3 text-sm font-semibold text-[#ff6b6b]">{submissionError}</div>
+                ) : null}
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: submittingProject ? 1 : 1.02, boxShadow: submittingProject ? undefined : "0 0 60px rgba(244,228,1,0.55)" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => void submitFullstackProject()}
+                  disabled={submittingProject || !githubUrl.trim() || !deployedUrl.trim()}
+                  className="relative mt-6 w-full overflow-hidden rounded-full px-8 py-4 text-[16px] font-bold text-[#1a1a2e]"
+                  style={{
+                    background: "#f4e401",
+                    boxShadow: "0 0 40px rgba(244,228,1,0.35)",
+                    opacity: submittingProject || !githubUrl.trim() || !deployedUrl.trim() ? 0.5 : 1,
+                    cursor: submittingProject || !githubUrl.trim() || !deployedUrl.trim() ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {submittingProject ? (
+                    <span className="relative z-10 inline-flex items-center justify-center gap-3">
+                      <Spinner />
+                      Submitting...
+                    </span>
+                  ) : (
+                    <span className="relative z-10">Submit Project →</span>
+                  )}
+                </motion.button>
+
+                <div className="mt-3 text-center text-xs" style={{ color: "rgba(241,220,186,0.4)" }}>
+                  Make sure your GitHub repo is public and deployed URL is live before submitting
+                </div>
+              </motion.div>
+            </div>
+          )
         ) : submitted ? (
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
@@ -369,8 +638,6 @@ export default function Step6Assessment(props: {
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             className="mt-10 rounded-2xl border border-[#6952a2]/40 bg-[#1a1a2e] p-8 text-center"
           >
-            <ScoreCircle score={score} />
-
             {alreadySubmitted ? (
               <div className="mt-5 inline-flex rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-sm font-semibold text-[#f4e401]">
                 Assessment Already Submitted
@@ -378,33 +645,17 @@ export default function Step6Assessment(props: {
             ) : null}
 
             <div className="mt-6">
-              {score >= 70 ? (
-                <>
-                  <div className="text-2xl font-extrabold text-[#22c55e]">Excellent Work!</div>
-                  <div className="mt-2 text-sm font-medium" style={{ color: "rgba(241,220,186,0.7)" }}>
-                    You&apos;ve qualified for the next round
-                  </div>
-                </>
-              ) : score >= 40 ? (
-                <>
-                  <div className="text-2xl font-extrabold text-[#f4e401]">Good Effort!</div>
-                  <div className="mt-2 text-sm font-medium" style={{ color: "rgba(241,220,186,0.7)" }}>
-                    Keep learning and growing
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-2xl font-extrabold text-[#f1dcba]">Keep Practicing!</div>
-                  <div className="mt-2 text-sm font-medium" style={{ color: "rgba(241,220,186,0.7)" }}>
-                    Every attempt is a learning opportunity
-                  </div>
-                </>
-              )}
+              <div className="text-2xl font-extrabold text-[#f4e401]">Assessment Submitted</div>
+              <div className="mt-2 text-sm font-medium" style={{ color: "rgba(241,220,186,0.7)" }}>
+                Thanks for completing the assessment. Continue to the final step.
+              </div>
             </div>
 
-            <div className="mt-4 text-sm font-medium" style={{ color: "rgba(241,220,186,0.6)" }}>
-              {correctCount} / {totalQuestions} correct
-            </div>
+            {alreadySubmitted ? null : (
+              <div className="mt-4 text-sm font-medium" style={{ color: "rgba(241,220,186,0.6)" }}>
+                {correctCount} / {totalQuestions} answers submitted
+              </div>
+            )}
 
             <motion.button
               type="button"

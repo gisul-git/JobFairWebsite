@@ -77,8 +77,10 @@ export default function UsersTable() {
       "Courses Done",
       "Certificate",
       "Social Done",
+      "Assessment Details",
+      "GitHub URL",
+      "Deployed URL",
       "Registered At",
-      "Referrals",
     ];
 
     const lines = [headers.join(",")];
@@ -96,6 +98,13 @@ export default function UsersTable() {
           ? "Yes"
           : "No";
 
+      const assessmentDetails =
+        u?.assessment?.role === "Fullstack"
+          ? `Project Submitted${u?.assessment?.notes ? ` | Notes: ${u.assessment.notes}` : ""}`
+          : `Score: ${u?.assessment?.score ?? "-"}% | Correct: ${u?.assessment?.correctCount ?? "-"}`;
+      const githubUrl = u?.assessment?.role === "Fullstack" ? u?.assessment?.githubUrl ?? "N/A" : "N/A";
+      const deployedUrl = u?.assessment?.role === "Fullstack" ? u?.assessment?.deployedUrl ?? "N/A" : "N/A";
+
       lines.push(
         [
           csvEscape(u?.name),
@@ -106,8 +115,10 @@ export default function UsersTable() {
           csvEscape(coursesDone),
           csvEscape(u?.certificate?.issued ? "Issued" : "No"),
           csvEscape(socialDone),
+          csvEscape(assessmentDetails),
+          csvEscape(githubUrl),
+          csvEscape(deployedUrl),
           csvEscape(u?.registeredAt ?? ""),
-          csvEscape(u?.referralCount ?? 0),
         ].join(",")
       );
     }
@@ -159,7 +170,7 @@ export default function UsersTable() {
       </div>
 
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm lg:min-w-[980px]">
+        <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-sm lg:min-w-[1280px]">
           <thead>
             <tr className="text-left text-cream/80">
               <th className="px-3 py-2">Name</th>
@@ -170,20 +181,22 @@ export default function UsersTable() {
               <th className="px-3 py-2">Courses Done</th>
               <th className="px-3 py-2">Certificate</th>
               <th className="px-3 py-2">Social Done</th>
+              <th className="hidden px-3 py-2 lg:table-cell">Assessment Details</th>
+              <th className="px-3 py-2">GitHub URL</th>
+              <th className="px-3 py-2">Deployed URL</th>
               <th className="hidden px-3 py-2 lg:table-cell">Registered At</th>
-              <th className="px-3 py-2">Referrals</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-cream/70">
+                <td colSpan={12} className="px-3 py-6 text-center text-cream/70">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-cream/70">
+                <td colSpan={12} className="px-3 py-6 text-center text-cream/70">
                   No users found.
                 </td>
               </tr>
@@ -196,6 +209,12 @@ export default function UsersTable() {
                   Boolean(u?.social?.google?.verified) &&
                   Boolean(u?.social?.linkedin?.verified) &&
                   Boolean(u?.social?.instagram?.verified);
+                const assessmentDetails =
+                  u?.assessment?.role === "Fullstack"
+                    ? `Project Submitted${u?.assessment?.notes ? ` | Notes: ${u.assessment.notes}` : ""}`
+                    : `Score: ${u?.assessment?.score ?? "-"}% | Correct: ${u?.assessment?.correctCount ?? "-"}`;
+                const githubUrl = u?.assessment?.role === "Fullstack" ? u?.assessment?.githubUrl : null;
+                const deployedUrl = u?.assessment?.role === "Fullstack" ? u?.assessment?.deployedUrl : null;
 
                 return (
                   <motion.tr
@@ -216,10 +235,42 @@ export default function UsersTable() {
                       {u?.certificate?.issued ? "Issued" : "No"}
                     </td>
                     <td className="px-3 py-3 text-white/90">{socialDone ? "Yes" : "No"}</td>
-                    <td className="hidden px-3 py-3 text-white/90 lg:table-cell">
+                    <td className="hidden max-w-[260px] truncate px-3 py-3 text-white/90 lg:table-cell" title={assessmentDetails}>
+                      {assessmentDetails}
+                    </td>
+                    <td className="max-w-[220px] px-3 py-3 text-white/90">
+                      {githubUrl ? (
+                        <a
+                          href={githubUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block truncate text-[#f4e401] hover:underline"
+                          title={githubUrl}
+                        >
+                          {githubUrl.length > 30 ? `${githubUrl.slice(0, 30)}...` : githubUrl}
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                    <td className="max-w-[220px] px-3 py-3 text-white/90">
+                      {deployedUrl ? (
+                        <a
+                          href={deployedUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block truncate text-[#f4e401] hover:underline"
+                          title={deployedUrl}
+                        >
+                          {deployedUrl.length > 30 ? `${deployedUrl.slice(0, 30)}...` : deployedUrl}
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                    <td className="rounded-r-xl hidden px-3 py-3 text-white/90 lg:table-cell">
                       {u?.registeredAt ? new Date(u.registeredAt).toLocaleString() : "-"}
                     </td>
-                    <td className="rounded-r-xl px-3 py-3 text-white/90">{u?.referralCount ?? 0}</td>
                   </motion.tr>
                 );
               })

@@ -1,4 +1,5 @@
 import { connectDB } from "@/lib/mongodb";
+import { getPointsForStep } from "@/lib/points";
 import { sanitizeUser } from "@/lib/sanitize-user";
 import { User } from "@/models/User";
 import type { ApiResponse } from "@/types";
@@ -12,7 +13,6 @@ type RegisterBody = {
   phone?: string;
   address?: string;
   collegeOrCompany?: string;
-  referralCode?: string;
 };
 
 export async function POST(req: Request): Promise<Response> {
@@ -31,7 +31,6 @@ export async function POST(req: Request): Promise<Response> {
   const phone = bodyJson.phone?.trim();
   const address = bodyJson.address?.trim();
   const collegeOrCompany = bodyJson.collegeOrCompany?.trim();
-  const referralCode = bodyJson.referralCode?.trim() || undefined;
 
   if (!name || !email || !phone || !address || !collegeOrCompany) {
     const body: ApiResponse = { ok: false, error: "Missing required fields" };
@@ -58,26 +57,14 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  let referredBy: string | null = null;
-  if (referralCode) {
-    const referrer = await User.findOne({ referralCode }).exec();
-    if (referrer) {
-      referredBy = referralCode;
-      referrer.referralCount = (referrer.referralCount ?? 0) + 1;
-      referrer.luckyDraw.entries = (referrer.luckyDraw?.entries ?? 1) + 1;
-      await referrer.save();
-    }
-  }
-
   const created = await User.create({
     name,
     email,
     phone,
     address,
     collegeOrCompany,
-    referredBy,
     funnel: { currentStep: 2, completedSteps: [1] },
-    points: 10,
+    points: getPointsForStep(2),
   });
 
   const user = sanitizeUser(created.toObject()) as any;

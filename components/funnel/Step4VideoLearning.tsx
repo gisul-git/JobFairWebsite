@@ -7,12 +7,6 @@ import type { IUser } from "@/types";
 
 type CourseKey = "aiFundamentals" | "softSkills";
 
-type CourseState = {
-  progressPercent: number;
-  watchedSeconds: number;
-  completed: boolean;
-};
-
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
@@ -79,58 +73,115 @@ export default function Step4VideoLearning(props: {
   setCurrentStep: (step: number) => void;
   showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
-  const [ai, setAi] = useState<CourseState>({ progressPercent: 0, watchedSeconds: 0, completed: false });
-  const [soft, setSoft] = useState<CourseState>({ progressPercent: 0, watchedSeconds: 0, completed: false });
+  const [courseProgress, setCourseProgress] = useState<Record<CourseKey, number>>({
+    aiFundamentals: 0,
+    softSkills: 0,
+  });
+  const [courseDuration, setCourseDuration] = useState<Record<CourseKey, number>>({
+    aiFundamentals: 0,
+    softSkills: 0,
+  });
+  const [courseWatched, setCourseWatched] = useState<Record<CourseKey, number>>({
+    aiFundamentals: 0,
+    softSkills: 0,
+  });
   const [celebrate, setCelebrate] = useState(false);
 
-  const lastSentRef = useRef<Record<CourseKey, number>>({ aiFundamentals: 0, softSkills: 0 });
+  const lastSaveTime = useRef<Record<string, number>>({
+    aiFundamentals: 0,
+    softSkills: 0,
+  });
 
   useEffect(() => {
-    const aiProgress = props.userData?.courses?.aiFundamentals?.progressPercent ?? 0;
-    const aiWatched = props.userData?.courses?.aiFundamentals?.watchedSeconds ?? 0;
-    const aiDone = Boolean(props.userData?.courses?.aiFundamentals?.completed);
-    setAi({ progressPercent: aiProgress, watchedSeconds: aiWatched, completed: aiDone || aiProgress >= 100 });
-
-    const softProgress = props.userData?.courses?.softSkills?.progressPercent ?? 0;
-    const softWatched = props.userData?.courses?.softSkills?.watchedSeconds ?? 0;
-    const softDone = Boolean(props.userData?.courses?.softSkills?.completed);
-    setSoft({
-      progressPercent: softProgress,
-      watchedSeconds: softWatched,
-      completed: softDone || softProgress >= 100,
+    setCourseProgress({
+      aiFundamentals: Number(props.userData?.courses?.aiFundamentals?.progressPercent ?? 0),
+      softSkills: Number(props.userData?.courses?.softSkills?.progressPercent ?? 0),
+    });
+    setCourseWatched({
+      aiFundamentals: Number(props.userData?.courses?.aiFundamentals?.watchedSeconds ?? 0),
+      softSkills: Number(props.userData?.courses?.softSkills?.watchedSeconds ?? 0),
     });
   }, [props.userData]);
 
-  async function postProgress(courseKey: CourseKey, progressPercent: number, watchedSeconds: number) {
-    if (!props.userId) return;
+  function authHeaders(): Record<string, string> {
+    const token =
+      window.localStorage.getItem("gisul_token") ?? window.localStorage.getItem("gisul:sessionToken");
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  }
 
-    const now = Date.now();
-    if (now - (lastSentRef.current[courseKey] ?? 0) < 10_000) return;
-    lastSentRef.current[courseKey] = now;
-
-    const res = await fetch("/api/course/progress", {
+  async function apiPost(path: string, payload: Record<string, unknown>, headers: Record<string, string>) {
+    const res = await fetch(path, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId: props.userId, courseKey, progressPercent, watchedSeconds }),
+      headers,
+      body: JSON.stringify(payload),
     });
     const json = (await res.json()) as any;
     if (res.ok && json?.ok && json.data) props.setUserData(json.data);
   }
 
-  async function onTimeUpdate(courseKey: CourseKey, video: HTMLVideoElement) {
-    if (!video.duration || Number.isNaN(video.duration)) return;
-    const progressPercent = clamp((video.currentTime / video.duration) * 100, 0, 100);
-    const watchedSeconds = Math.floor(video.currentTime);
-    await postProgress(courseKey, progressPercent, watchedSeconds);
+  const resolveUserId = () => props.userId ?? props.userData?._id ?? props.userData?.id ?? null;
 
-    if (courseKey === "aiFundamentals") {
-      setAi((s) => ({ ...s, progressPercent, watchedSeconds, completed: s.completed || progressPercent >= 100 }));
-    } else {
-      setSoft((s) => ({ ...s, progressPercent, watchedSeconds, completed: s.completed || progressPercent >= 100 }));
+  const handleLoadedMetadata = (courseKey: CourseKey) => (e: any) => {
+    const duration = Number(e.target.duration ?? 0);
+    setCourseDuration((prev) => ({ ...prev, [courseKey]: duration }));
+
+    const saved = Number(props.userData?.courses?.[courseKey]?.watchedSeconds ?? 0);
+    if (saved > 0) {
+      e.target.currentTime = saved;
     }
+  };
+
+  const handleTimeUpdate = (courseKey: CourseKey) => (e: any) => {
+    const currentTime = Number(e.target.currentTime ?? 0);
+    const duration = Number(e.target.duration ?? 0);
+    if (!duration) return;
+
+    const percent = Math.round((currentTime / duration) * 100);
+    setCourseProgress((prev) => ({ ...prev, [courseKey]: percent }));
+    setCourseWatched((prev) => ({ ...prev, [courseKey]: Math.floor(currentTime) }));
+
+    const now = Date.now();
+    if (now - (lastSaveTime.current[courseKey] ?? 0) > 10_000) {
+      lastSaveTime.current[courseKey] = now;
+      const uid = resolveUserId();
+      if (!uid) return;
+      void apiPost(
+        "/api/course/progress",
+        {
+          userId: uid,
+          courseKey,
+          progressPercent: percent,
+          watchedSeconds: Math.floor(currentTime),
+        },
+        authHeaders()
+      );
+    }
+  };
+
+  const handleVideoEnded = (courseKey: CourseKey) => () => {
+    setCourseProgress((prev) => ({ ...prev, [courseKey]: 100 }));
+    const uid = resolveUserId();
+    if (!uid) return;
+    void apiPost(
+      "/api/course/progress",
+      {
+        userId: uid,
+        courseKey,
+        progressPercent: 100,
+        watchedSeconds: Math.floor(courseDuration[courseKey] || 0),
+      },
+      authHeaders()
+    );
+    lastSaveTime.current[courseKey] = Date.now();
   }
 
-  const allCompleted = ai.completed && soft.completed;
+  const aiCompleted =
+    courseProgress.aiFundamentals >= 100 || Boolean(props.userData?.courses?.aiFundamentals?.completed);
+  const softCompleted =
+    courseProgress.softSkills >= 100 || Boolean(props.userData?.courses?.softSkills?.completed);
+  const allCompleted = aiCompleted && softCompleted;
   const alreadyCompleted =
     (props.userData?.courses?.aiFundamentals?.progressPercent ?? 0) >= 100 &&
     (props.userData?.courses?.softSkills?.progressPercent ?? 0) >= 100;
@@ -144,7 +195,7 @@ export default function Step4VideoLearning(props: {
       }, 1000);
       return () => window.clearTimeout(t1);
     }
-  }, [allCompleted, alreadyCompleted, celebrate, props, ai.completed, soft.completed]);
+  }, [allCompleted, alreadyCompleted, celebrate, props]);
 
   return (
     <section className="relative px-6 py-16">
@@ -189,19 +240,23 @@ export default function Step4VideoLearning(props: {
               title="AI Fundamentals"
               duration="30 mins"
               courseKey="aiFundamentals"
-              progress={ai.progressPercent}
-              completed={ai.completed}
-              watchedSeconds={ai.watchedSeconds}
-              onTimeUpdate={onTimeUpdate}
+              progress={courseProgress.aiFundamentals}
+              completed={aiCompleted}
+              src={process.env.NEXT_PUBLIC_VIDEO_AI_FUNDAMENTALS}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={handleVideoEnded}
             />
             <CourseCard
               title="Soft Skills for the Future"
               duration="20 mins"
               courseKey="softSkills"
-              progress={soft.progressPercent}
-              completed={soft.completed}
-              watchedSeconds={soft.watchedSeconds}
-              onTimeUpdate={onTimeUpdate}
+              progress={courseProgress.softSkills}
+              completed={softCompleted}
+              src={process.env.NEXT_PUBLIC_VIDEO_SOFT_SKILLS}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={handleVideoEnded}
             />
           </div>
         )}
@@ -218,37 +273,12 @@ function CourseCard(props: {
   courseKey: CourseKey;
   progress: number;
   completed: boolean;
-  watchedSeconds: number;
-  onTimeUpdate: (courseKey: CourseKey, video: HTMLVideoElement) => void;
+  src?: string;
+  onTimeUpdate: (courseKey: CourseKey) => (e: any) => void;
+  onLoadedMetadata: (courseKey: CourseKey) => (e: any) => void;
+  onEnded: (courseKey: CourseKey) => () => void;
 }) {
-  const src =
-    props.courseKey === "aiFundamentals"
-      ? process.env.NEXT_PUBLIC_AI_FUNDAMENTALS_URL
-      : process.env.NEXT_PUBLIC_SOFT_SKILLS_URL;
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !props.watchedSeconds) return;
-    const applyTime = () => {
-      try {
-        if (video.currentTime < props.watchedSeconds) {
-          video.currentTime = props.watchedSeconds;
-        }
-      } catch {
-        // ignore seek errors
-      }
-    };
-
-    if (video.readyState >= 1) {
-      applyTime();
-      return;
-    }
-
-    video.addEventListener("loadedmetadata", applyTime, { once: true });
-    return () => video.removeEventListener("loadedmetadata", applyTime);
-  }, [props.watchedSeconds]);
 
   return (
     <div className="rounded-2xl border border-secondary/40 bg-secondary/10 p-5">
@@ -265,16 +295,24 @@ function CourseCard(props: {
       <div className="mt-4">
         <video
           ref={videoRef}
-          className="w-full rounded-xl border border-white/10 bg-black/20"
+          className="border border-white/10 bg-black/20"
+          style={{ width: "100%", borderRadius: "12px" }}
           controls
-          src={src || undefined}
-          onTimeUpdate={(e) => props.onTimeUpdate(props.courseKey, e.currentTarget)}
+          controlsList="nodownload"
+          onContextMenu={(e) => e.preventDefault()}
+          src={props.src || undefined}
+          onTimeUpdate={props.onTimeUpdate(props.courseKey)}
+          onLoadedMetadata={props.onLoadedMetadata(props.courseKey)}
+          onEnded={props.onEnded(props.courseKey)}
+          preload="metadata"
         />
-        {!src ? (
+        {!props.src ? (
           <p className="mt-2 text-xs text-cream/60">
             Set{" "}
             <span className="font-mono">
-              {props.courseKey === "aiFundamentals" ? "NEXT_PUBLIC_AI_FUNDAMENTALS_URL" : "NEXT_PUBLIC_SOFT_SKILLS_URL"}
+              {props.courseKey === "aiFundamentals"
+                ? "NEXT_PUBLIC_VIDEO_AI_FUNDAMENTALS"
+                : "NEXT_PUBLIC_VIDEO_SOFT_SKILLS"}
             </span>{" "}
             to your signed Azure video URL.
           </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { IUser } from "@/types";
 
@@ -45,26 +45,8 @@ function Confetti({ show }: { show: boolean }) {
   );
 }
 
-export default function ThankYou(props: { userData: Partial<IUser> & { referralCode?: string } }) {
-  const [copied, setCopied] = useState(false);
-
+export default function ThankYou(props: { userData: Partial<IUser> }) {
   const name = props.userData?.name ?? "Friend";
-  const referralCode = (props.userData as any)?.referralCode ?? "";
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const referralLink = referralCode ? `${origin}/?ref=${referralCode}` : `${origin}/`;
-
-  async function copyLink() {
-    await navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
-  }
-
-  function shareWhatsApp() {
-    const msg = `I just completed GISUL’s free certification. Join with my link: ${referralLink}`;
-    const url = new URL("https://wa.me/");
-    url.searchParams.set("text", msg);
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
-  }
 
   return (
     <section className="relative px-6 py-16">
@@ -80,36 +62,8 @@ export default function ThankYou(props: { userData: Partial<IUser> & { referralC
         </h2>
 
         <p className="mt-3 text-cream/90">
-          Refer a friend → <span className="font-semibold text-primary">Both of you get a bonus reward!</span>
+          Your registration is complete. Our team will contact shortlisted candidates soon.
         </p>
-
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-left backdrop-blur">
-          <div className="text-sm font-semibold text-cream/90">Your referral link</div>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex-1 rounded-xl border border-cream/20 bg-dark/40 px-4 py-3 font-mono text-xs text-white/90">
-              {referralLink}
-            </div>
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => void copyLink()}
-              className="rounded-full bg-primary px-6 py-3 text-sm font-bold text-dark"
-            >
-              {copied ? "Copied!" : "Copy Link"}
-            </motion.button>
-          </div>
-
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={shareWhatsApp}
-              className="w-full rounded-full border border-cream/20 bg-transparent px-6 py-3 text-sm font-bold text-white hover:border-cream/40"
-            >
-              Share Your Journey
-            </button>
-          </div>
-        </div>
       </motion.div>
     </section>
   );

@@ -7,6 +7,12 @@ import type { ApiResponse } from "@/types";
 
 export const dynamic = "force-dynamic";
 
+type UpdateAddressBody = {
+  fullAddress?: string;
+  city?: string;
+  pincode?: string;
+};
+
 function getBearerToken(req: Request) {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return null;
@@ -31,23 +37,48 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json(body, { status: 401 });
   }
 
+  let bodyJson: UpdateAddressBody;
+  try {
+    bodyJson = (await req.json()) as UpdateAddressBody;
+  } catch {
+    const body: ApiResponse = { ok: false, error: "Invalid JSON body" };
+    return Response.json(body, { status: 400 });
+  }
+
+  const fullAddress = bodyJson.fullAddress?.trim() ?? "";
+  const city = bodyJson.city?.trim() ?? "";
+  const pincode = String(bodyJson.pincode ?? "").trim();
+
+  if (!fullAddress) {
+    const body: ApiResponse = { ok: false, error: "Full address is required" };
+    return Response.json(body, { status: 400 });
+  }
+  if (!/^\d{6}$/.test(pincode)) {
+    const body: ApiResponse = { ok: false, error: "Pincode must be exactly 6 digits" };
+    return Response.json(body, { status: 400 });
+  }
+
+  const combinedAddress = city
+    ? `${fullAddress}, ${city} - ${pincode}`
+    : `${fullAddress} - ${pincode}`;
+
   const user = await User.findById(userId).exec();
   if (!user) {
     const body: ApiResponse = { ok: false, error: "User not found" };
     return Response.json(body, { status: 404 });
   }
 
-  user.funnel.currentStep = 8;
-  const nextCompleted = new Set<number>(user.funnel.completedSteps ?? []);
-  nextCompleted.add(7);
-  user.funnel.completedSteps = Array.from(nextCompleted).sort((a, b) => a - b);
-  user.funnel.completedAt = new Date();
-  user.points = 100;
-
+  user.address = combinedAddress;
   await user.save();
 
   const updatedUser = sanitizeUser(user.toObject());
-  const body: ApiResponse = { ok: true, data: updatedUser };
-  return Response.json(body, { status: 200 });
+  return Response.json(
+    {
+      ok: true,
+      success: true,
+      data: updatedUser,
+    },
+    { status: 200 }
+  );
 }
 

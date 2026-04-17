@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { IUser } from "@/types";
 
 type FieldErrors = Partial<
-  Record<"name" | "email" | "phone" | "collegeOrCompany" | "address" | "referralCode", string>
+  Record<"name" | "email" | "phone" | "collegeOrCompany" | "address", string>
 >;
 
 function Spinner() {
@@ -36,7 +36,6 @@ function rand(min: number, max: number) {
 }
 
 export default function Step2Register(props: {
-  referralFromUrl?: string;
   userData?: Partial<IUser> & { _id?: string; id?: string };
   setCurrentStep: (step: number) => void;
   setUserData: (user: Partial<IUser> & { _id?: string; id?: string }) => void;
@@ -47,16 +46,11 @@ export default function Step2Register(props: {
   const [phone, setPhone] = useState("");
   const [collegeOrCompany, setCollegeOrCompany] = useState("");
   const [address, setAddress] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [successFlash, setSuccessFlash] = useState(false);
-
-  useEffect(() => {
-    if (props.referralFromUrl) setReferralCode(props.referralFromUrl);
-  }, [props.referralFromUrl]);
 
   useEffect(() => {
     const nextParticles: Particle[] = Array.from({ length: 15 }, (_, i) => ({
@@ -73,8 +67,6 @@ export default function Step2Register(props: {
     }));
     setParticles(nextParticles);
   }, []);
-
-  const referralApplied = useMemo(() => referralCode.trim().length > 0, [referralCode]);
 
   function validate(): FieldErrors {
     const next: FieldErrors = {};
@@ -105,7 +97,6 @@ export default function Step2Register(props: {
           phone,
           collegeOrCompany,
           address,
-          referralCode: referralApplied ? referralCode.trim() : undefined,
         }),
       });
 
@@ -465,37 +456,6 @@ export default function Step2Register(props: {
             ) : null}
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7, duration: 0.35, ease: "easeOut" }}
-          >
-            <label className={labelBase} style={{ color: "rgba(241, 220, 186, 0.8)" }}>
-              Referral Code
-            </label>
-            <input
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value)}
-              className={`${inputBase} ${errors.referralCode ? inputError : inputDefault}`}
-              placeholder="e.g. A1B2C3D4"
-            />
-
-            {referralApplied ? (
-              <motion.div
-                initial={{ scale: 0.9, y: 6, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 15 }}
-                className="mt-[10px] inline-flex w-full items-center justify-center rounded-full px-4 py-2 text-center text-[12px] font-semibold"
-                style={{
-                  background: "rgba(34, 197, 94, 0.15)",
-                  border: "1px solid rgba(34, 197, 94, 0.40)",
-                  color: "#22c55e",
-                }}
-              >
-                Referral Applied!
-              </motion.div>
-            ) : null}
-          </motion.div>
         </div>
 
         {serverError ? (

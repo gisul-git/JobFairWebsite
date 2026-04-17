@@ -19,6 +19,7 @@ export default function Step4Certificate(props: {
   showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
   const blobUrl = props.userData?.certificate?.blobUrl;
   const issuedAt = props.userData?.certificate?.issuedAt as any;
@@ -61,10 +62,32 @@ export default function Step4Certificate(props: {
 
   async function onDownload() {
     const url = await ensureCertificate();
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    if (url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to download certificate");
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        const safeName = String(name ?? "certificate")
+          .trim()
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/^-+|-+$/g, "")
+          .toLowerCase();
+        a.download = `gisul-certificate-${safeName || "user"}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+        setDownloaded(true);
+      } catch {
+        props.showToast("Could not download certificate. Try again.", "error");
+        return;
+      }
+    }
 
-    props.showToast("Progress saved", "success");
-    props.setCurrentStep(6);
+    props.showToast("Certificate downloaded successfully", "success");
   }
 
   async function onShareLinkedIn() {
@@ -141,6 +164,20 @@ export default function Step4Certificate(props: {
               Share on LinkedIn
             </motion.button>
           </div>
+
+          {downloaded ? (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => props.setCurrentStep(6)}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-primary px-10 py-4 font-bold text-dark sm:w-auto"
+            >
+              Go to Next Step →
+            </motion.button>
+          ) : null}
         </div>
       </motion.div>
     </section>

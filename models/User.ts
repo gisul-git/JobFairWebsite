@@ -1,4 +1,3 @@
-import { nanoid } from "nanoid";
 import {
   model,
   models,
@@ -14,10 +13,6 @@ export interface IUser {
   address: string;
   collegeOrCompany: string;
   registeredAt: Date;
-
-  referralCode?: string;
-  referredBy?: string | null;
-  referralCount: number;
 
   role: "BDE" | "Fullstack" | null;
   points: number;
@@ -84,6 +79,9 @@ export interface IUser {
     correctCount?: number;
     totalQuestions?: number;
     timeTaken?: number;
+    githubUrl?: string;
+    deployedUrl?: string;
+    notes?: string;
     startedAt?: Date;
     submittedAt?: Date;
     completed: boolean;
@@ -114,10 +112,6 @@ const UserSchema = new Schema<IUser>(
     registeredAt: { type: Date, default: () => new Date() },
     role: { type: String, enum: ["BDE", "Fullstack", null], default: null },
     points: { type: Number, default: 0 },
-
-    referralCode: { type: String, unique: true },
-    referredBy: { type: String, default: null },
-    referralCount: { type: Number, default: 0 },
 
     funnel: {
       currentStep: { type: Number, default: 1 },
@@ -170,6 +164,9 @@ const UserSchema = new Schema<IUser>(
       correctCount: { type: Number },
       totalQuestions: { type: Number },
       timeTaken: { type: Number },
+      githubUrl: { type: String, default: null },
+      deployedUrl: { type: String, default: null },
+      notes: { type: String, default: null },
       startedAt: { type: Date },
       submittedAt: { type: Date },
       completed: { type: Boolean, default: false },
@@ -192,15 +189,7 @@ const UserSchema = new Schema<IUser>(
   { timestamps: false }
 );
 
-UserSchema.pre("save", function () {
-  if (!this.referralCode) {
-    this.referralCode = nanoid(8);
-  }
-});
-
 UserSchema.index({ email: 1 });
-UserSchema.index({ referralCode: 1 });
-UserSchema.index({ referredBy: 1 });
 
 export const User: Model<IUser> =
   (models.User as Model<IUser> | undefined) || model<IUser>("User", UserSchema);

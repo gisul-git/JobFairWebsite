@@ -421,6 +421,6 @@ export const BDE_QUESTIONS = [
   }
 ]
 
-export const BDE_TOTAL_QUESTIONS = 50
+export const BDE_TOTAL_QUESTIONS = 35
 export const BDE_TIME_LIMIT_MINUTES = 40
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import PointsBar from "@/components/funnel/PointsBar";
 import Step1Hero from "@/components/funnel/Step1Hero";
@@ -14,7 +14,7 @@ import Step6Assessment from "@/components/funnel/Step6Assessment";
 import Step7HRContact from "@/components/funnel/Step7HRContact";
 import Toast from "@/components/ui/Toast";
 import type { IUser } from "@/types";
-import { STEP_POINTS } from "@/lib/points";
+import { getPointsForStep } from "@/lib/points";
 
 type ToastType = "success" | "error" | "info";
 
@@ -22,7 +22,6 @@ export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [showIntroHero, setShowIntroHero] = useState(true);
   const [userData, setUserData] = useState<Partial<IUser> & { _id?: string; id?: string }>({});
-  const [referralFromUrl, setReferralFromUrl] = useState<string | undefined>(undefined);
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -35,13 +34,6 @@ export default function HomePage() {
     type: "info",
     visible: false,
   });
-  const prevStepRef = useRef<number>(currentStep);
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const ref = url.searchParams.get("ref")?.trim() || undefined;
-    setReferralFromUrl(ref);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,9 +77,11 @@ export default function HomePage() {
 
         const u = json.user as any;
         setUserData(u ?? {});
-        setPoints(Number(u?.points ?? 0));
         const step = Number(u?.funnel?.currentStep ?? 1);
-        if (step >= 1 && step <= 8) setCurrentStep(step);
+        if (step >= 1 && step <= 8) {
+          setCurrentStep(step);
+          setPoints(getPointsForStep(step));
+        }
         const id = u?._id ?? u?.id ?? null;
         if (id) {
           setUserId(String(id));
@@ -122,40 +116,7 @@ export default function HomePage() {
   }, [currentStep]);
 
   useEffect(() => {
-    const prev = prevStepRef.current;
-    if (prev === currentStep) return;
-
-    // Registration success: Step2Register sets current step to 2 on success.
-    if (prev === 1 && currentStep === 2) {
-      setPoints(STEP_POINTS.registration);
-    }
-
-    // Social follow complete -> resume upload step
-    if (prev === 2 && currentStep === 3) {
-      setPoints((p) => p + 10);
-    }
-
-    // Resume upload complete -> video learning step
-    if (prev === 3 && currentStep === 4) {
-      setPoints((p) => p + 10);
-    }
-
-    // Video learning complete -> certificate step
-    if (prev === 4 && currentStep === 5) {
-      setPoints((p) => p + STEP_POINTS.courseComplete);
-    }
-
-    // Certificate downloaded/shared -> assessment step
-    if (prev === 5 && currentStep === 6) {
-      setPoints((p) => p + STEP_POINTS.certificateShared);
-    }
-
-    // Assessment step complete -> HR contact step
-    if (prev === 6 && currentStep === 7) {
-      setPoints((p) => p + STEP_POINTS.socialAll);
-    }
-
-    prevStepRef.current = currentStep;
+    setPoints(getPointsForStep(currentStep));
   }, [currentStep]);
 
   const transition = useMemo(
@@ -181,7 +142,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-dark">
+    <main className="relative min-h-screen bg-dark">
       <AnimatePresence>
         {checkingSession ? (
           <motion.div
@@ -216,9 +177,13 @@ export default function HomePage() {
         className={
           currentStep === 1
             ? "w-full"
-            : currentStep === 2 || currentStep === 3
-              ? "w-full pt-[64px] sm:pt-[72px]"
-              : "mx-auto w-full max-w-6xl px-4 py-10 pt-[64px] sm:pt-[72px]"
+            : currentStep === 2 ||
+                currentStep === 3 ||
+                currentStep === 6 ||
+                currentStep === 7 ||
+                currentStep === 8
+              ? "w-full"
+              : "mx-auto w-full max-w-6xl px-4 py-10"
         }
       >
         <AnimatePresence mode="wait">
@@ -229,7 +194,6 @@ export default function HomePage() {
               ) : (
                 <div className="w-full">
                   <Step2Register
-                    referralFromUrl={referralFromUrl}
                     userData={userData}
                     setCurrentStep={setCurrentStep}
                     setUserData={setUserData}

@@ -62,20 +62,6 @@ function GiftIcon({ className }: { className?: string }) {
   );
 }
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path
-        d="M20 6L9 17l-5-5"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function DotTimelineItem(props: { title: string; body: string; delay: number }) {
   return (
     <motion.div
@@ -95,21 +81,24 @@ function DotTimelineItem(props: { title: string; body: string; delay: number }) 
 
 export default function Step7HRContact(props: {
   currentStep: number;
-  userData: Partial<IUser> & { _id?: string; id?: string; referralCode?: string };
+  userData: Partial<IUser> & { _id?: string; id?: string };
   setUserData: (u: Partial<IUser> & { _id?: string; id?: string }) => void;
   setCurrentStep: (step: number) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
+  const [fullAddress, setFullAddress] = useState(props.userData?.address || "");
+  const [city, setCity] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [addressSaved, setAddressSaved] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
 
   const name = props.userData?.name ?? "Candidate";
   const role = props.userData?.role === "BDE" ? "BDE" : props.userData?.role === "Fullstack" ? "Fullstack" : null;
   const roleLabel = role === "BDE" ? "Business Development Executive" : role === "Fullstack" ? "Full Stack Intern" : "Role not set";
-  const score = props.userData?.assessment?.score ?? 0;
-  const address = props.userData?.address ?? "Address not available";
-  const referralCode = props.userData?.referralCode ?? "";
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const referralLink = referralCode ? `${origin}/?ref=${referralCode}` : `${origin}/`;
+  const syncUser = (updatedUser: Partial<IUser> & { _id?: string; id?: string }) => {
+    props.setUserData(updatedUser);
+  };
 
   const confetti = useMemo<ConfettiPiece[]>(
     () =>
@@ -151,7 +140,8 @@ export default function Step7HRContact(props: {
         }
 
         if (cancelled) return;
-        props.setUserData(json.data);
+        const updatedUser = json.data;
+        syncUser(updatedUser);
         props.setCurrentStep(8);
       } catch (e) {
         if (cancelled) return;
@@ -164,15 +154,49 @@ export default function Step7HRContact(props: {
     };
   }, [props.currentStep, props.setCurrentStep, props.setUserData]);
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+  useEffect(() => {
+    setFullAddress(props.userData?.address || "");
+  }, [props.userData?.address]);
+
+  async function saveAddress() {
+    setAddressError(null);
+    const token = window.localStorage.getItem("gisul_token") ?? window.localStorage.getItem("gisul:sessionToken");
+    if (!token) {
+      setAddressError("Missing session token. Please register again.");
+      return;
+    }
+
+    setSavingAddress(true);
+    try {
+      const res = await fetch("/api/user/update-address", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullAddress,
+          city,
+          pincode,
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error ?? "Unable to save address");
+      }
+      setAddressSaved(true);
+      window.setTimeout(() => setAddressSaved(false), 2000);
+      if (json?.data) syncUser(json.data);
+    } catch (e) {
+      setAddressError(e instanceof Error ? e.message : "Unable to save address");
+    } finally {
+      setSavingAddress(false);
+    }
   }
 
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pb-10 pt-[84px] sm:pt-[96px]"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />
@@ -221,42 +245,36 @@ export default function Step7HRContact(props: {
             You Did It, <span className="text-[#f4e401]">{name}</span>!
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base sm:text-lg" style={{ color: "rgba(241,220,186,0.7)" }}>
-            Your application is complete. Our HR team will review your profile and reach out soon.
+            Your application is complete. Our HR team will reach out to shortlisted candidates via call or email within 2 business days.
           </p>
         </motion.div>
 
         <div className="mt-8 grid gap-5">
           <div className="rounded-2xl border p-6" style={{ background: "rgba(105,82,162,0.10)", borderColor: "rgba(105,82,162,0.30)" }}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(241,220,186,0.55)" }}>
+              <div className="rounded-xl p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(241,220,186,0.10)" }}>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "rgba(241,220,186,0.45)" }}>
                   Role Applied
                 </div>
-                <div className="mt-2 text-base font-bold text-white">{roleLabel}</div>
+                <div className="text-[16px] font-bold text-white">{roleLabel}</div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(241,220,186,0.55)" }}>
-                  Assessment Score
+              <div className="rounded-xl p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(241,220,186,0.10)" }}>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "rgba(241,220,186,0.45)" }}>
+                  Assessment
                 </div>
-                <div className="mt-2 text-base font-bold text-white">{score}%</div>
+                <div className="text-[16px] font-bold text-white">Submitted</div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(241,220,186,0.55)" }}>
+              <div className="rounded-xl p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(241,220,186,0.10)" }}>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "rgba(241,220,186,0.45)" }}>
                   Resume
                 </div>
-                <div className="mt-2 inline-flex items-center gap-2 font-bold text-[#22c55e]">
-                  <CheckIcon className="h-5 w-5" />
-                  Uploaded
-                </div>
+                <div className="text-[16px] font-bold text-white">Uploaded</div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(241,220,186,0.55)" }}>
+              <div className="rounded-xl p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(241,220,186,0.10)" }}>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "rgba(241,220,186,0.45)" }}>
                   Courses
                 </div>
-                <div className="mt-2 inline-flex items-center gap-2 font-bold text-[#22c55e]">
-                  <CheckIcon className="h-5 w-5" />
-                  Completed
-                </div>
+                <div className="text-[16px] font-bold text-white">Completed</div>
               </div>
             </div>
           </div>
@@ -271,16 +289,58 @@ export default function Step7HRContact(props: {
                 <div className="mt-2 text-sm sm:text-base" style={{ color: "rgba(241,220,186,0.7)" }}>
                   The top 3 candidates based on assessment scores will receive exclusive GISUL goodies delivered to their address.
                 </div>
-                <div className="mt-4 text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: "rgba(241,220,186,0.5)" }}>
-                  Delivery address on file:
+                <div className="mt-4 text-[12px]" style={{ color: "rgba(241,220,186,0.6)", marginBottom: 12 }}>
+                  Confirm your delivery address for goodies
                 </div>
-                <div className="mt-2 text-sm font-medium text-white">{address}</div>
+                <textarea
+                  rows={2}
+                  placeholder="House/Flat no., Street, Area, Locality"
+                  value={fullAddress}
+                  onChange={(e) => setFullAddress(e.target.value)}
+                  className="w-full rounded-[10px] border px-4 py-3 text-white outline-none transition-colors placeholder:text-[#f1dcba66] focus:border-[#f4e40199]"
+                  style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                />
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="City"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full rounded-[10px] border px-4 py-3 text-white outline-none transition-colors placeholder:text-[#f1dcba66] focus:border-[#f4e40199]"
+                    style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                  />
+                  <input
+                    type="number"
+                    maxLength={6}
+                    placeholder="Pincode"
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value.slice(0, 6))}
+                    className="w-full rounded-[10px] border px-4 py-3 text-white outline-none transition-colors placeholder:text-[#f1dcba66] focus:border-[#f4e40199]"
+                    style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(241,220,186,0.15)" }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void saveAddress()}
+                  disabled={savingAddress}
+                  className="mt-3 rounded-full px-6 py-2.5 text-sm font-bold text-[#1a1a2e]"
+                  style={{
+                    background: addressSaved ? "#22c55e" : "#f4e401",
+                    opacity: savingAddress ? 0.85 : 1,
+                  }}
+                >
+                  {addressSaved ? "Saved! ✓" : "Save Address"}
+                </button>
+                {addressError ? (
+                  <div className="mt-2 text-sm font-semibold text-[#ff6b6b]">{addressError}</div>
+                ) : null}
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="mb-5 text-xl font-bold text-white">What Happens Next</div>
+            <div className="mb-5 border-l-[3px] border-[#f4e401] pl-3 text-[20px] font-bold text-white">
+              What Happens Next
+            </div>
             <div className="relative space-y-6 pl-2">
               <div className="absolute left-[3px] top-2 bottom-2 w-[2px]" style={{ background: "rgba(105,82,162,0.3)" }} />
               <DotTimelineItem
@@ -296,27 +356,8 @@ export default function Step7HRContact(props: {
               <DotTimelineItem
                 delay={0.5}
                 title="Direct Outreach"
-                body="Selected candidates receive a call or email from GISUL HR"
+                body="Our HR team will reach out to shortlisted candidates via call or email within 2 business days"
               />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[#6952a2]/30 bg-[#0d0d1a]/50 p-6">
-            <div className="text-xl font-bold text-white">Refer a Friend, Earn Rewards</div>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex-1 truncate rounded-xl border border-[#6952a2]/30 bg-[#1a1a2e] px-4 py-4 text-sm font-medium text-[#f4e401]">
-                {referralLink}
-              </div>
-              <button
-                type="button"
-                onClick={() => void copyLink()}
-                className="rounded-full bg-[#f4e401] px-5 py-3 text-sm font-bold text-[#1a1a2e] shadow-[0_0_30px_rgba(244,228,1,0.25)]"
-              >
-                {copied ? "Copied!" : "Copy Link"}
-              </button>
-            </div>
-            <div className="mt-3 text-sm font-medium" style={{ color: "rgba(241,220,186,0.5)" }}>
-              Both you and your friend get bonus rewards when they complete the platform
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 
 import { connectDB } from "@/lib/mongodb";
+import { getPointsForStep } from "@/lib/points";
 import { uploadToBlob } from "@/lib/azure-blob";
 import { generateCertificate } from "@/lib/certificate-generator";
 import { User } from "@/models/User";
@@ -55,7 +56,7 @@ export async function POST(_req: Request): Promise<Response> {
   if (!user.funnel.completedSteps.includes(5)) {
     user.funnel.completedSteps.push(5);
   }
-  user.points = (user.points ?? 0) + 15;
+  user.points = getPointsForStep(6);
   await user.save();
 
   const body: ApiResponse = {

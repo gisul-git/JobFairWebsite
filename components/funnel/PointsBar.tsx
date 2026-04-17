@@ -56,15 +56,15 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
       initial={{ opacity: 0, y: -56 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed left-0 right-0 top-0 z-50 h-[64px] sm:h-[72px] backdrop-blur-md"
+      className="absolute left-0 right-0 top-0 z-50 h-[64px] sm:h-[72px]"
       style={{
-        backgroundColor: "rgba(13, 13, 26, 0.95)",
-        borderBottom: "1px solid rgba(241, 220, 186, 0.08)",
+        backgroundColor: "transparent",
+        borderBottom: "none",
       }}
     >
       <div className="mx-auto flex h-full items-center px-4" style={{ maxWidth: 1440 }}>
         <div className="flex items-center">
-          <img src="/gisul-logo.png" alt="GISUL" className="h-10 w-auto object-contain sm:h-12" />
+          <img src="/gisul-logo.png" alt="GISUL" className="h-10 w-auto object-contain sm:h-30" />
           <span
             className="mx-2 hidden sm:inline-block"
             style={{ width: 1, height: 20, backgroundColor: "rgba(241, 220, 186, 0.2)" }}

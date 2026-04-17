@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import { uploadToBlob } from "@/lib/azure-blob";
+import { getPointsForStep } from "@/lib/points";
 import { decode } from "next-auth/jwt";
 import { sanitizeUser } from "@/lib/sanitize-user";
 import { User } from "@/models/User";
@@ -108,7 +109,7 @@ export async function POST(req: Request): Promise<Response> {
   nextCompleted.add(3);
   user.funnel.completedSteps = Array.from(nextCompleted).sort((a, b) => a - b);
 
-  user.points = (user.points ?? 0) + 10;
+  user.points = getPointsForStep(4);
 
   await user.save();
 

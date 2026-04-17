@@ -1,7 +1,6 @@
 import { decode } from "next-auth/jwt";
 
 import { BDE_QUESTIONS, BDE_TOTAL_QUESTIONS } from "@/lib/questions/bde-questions";
-import { FULLSTACK_QUESTIONS } from "@/lib/questions/fullstack-questions";
 import { connectDB } from "@/lib/mongodb";
 import { sanitizeUser } from "@/lib/sanitize-user";
 import { User } from "@/models/User";
@@ -13,6 +12,9 @@ type SubmitBody = {
   answers?: number[];
   role?: string;
   timeTaken?: number;
+  githubUrl?: string;
+  deployedUrl?: string;
+  notes?: string;
 };
 
 function getBearerToken(req: Request) {
@@ -48,21 +50,10 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const role = bodyJson.role === "BDE" || bodyJson.role === "Fullstack" ? bodyJson.role : null;
-  const answers = Array.isArray(bodyJson.answers) ? bodyJson.answers.map((v) => Number(v)) : null;
-  const timeTaken = typeof bodyJson.timeTaken === "number" ? bodyJson.timeTaken : null;
-
-  if (!role || !answers || timeTaken === null) {
+  if (!role) {
     const body: ApiResponse = { ok: false, error: "Missing assessment payload" };
     return Response.json(body, { status: 400 });
   }
-
-  const questionSet = role === "BDE" ? BDE_QUESTIONS : FULLSTACK_QUESTIONS;
-  const totalQuestions = role === "BDE" ? BDE_TOTAL_QUESTIONS : questionSet.length;
-  let correctCount = 0;
-  questionSet.forEach((q, idx) => {
-    if (answers[idx] === q.correctAnswer) correctCount += 1;
-  });
-  const score = Math.round((correctCount / totalQuestions) * 100);
 
   const user = await User.findById(userId).exec();
   if (!user) {
@@ -70,19 +61,68 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json(body, { status: 404 });
   }
 
-  user.assessment = {
-    role,
-    answers,
-    answersInProgress: {},
-    lastQuestionIndex: 0,
-    score,
-    correctCount,
-    totalQuestions,
-    timeTaken,
-    startedAt: user.assessment?.startedAt ?? new Date(),
-    submittedAt: new Date(),
-    completed: true,
-  };
+  if (role === "Fullstack") {
+    const githubUrl = String(bodyJson.githubUrl ?? "").trim();
+    const deployedUrl = String(bodyJson.deployedUrl ?? "").trim();
+    const notes = String(bodyJson.notes ?? "").trim();
+    if (!githubUrl.startsWith("https://github.com/")) {
+      const body: ApiResponse = { ok: false, error: "Please enter a valid GitHub URL" };
+      return Response.json(body, { status: 400 });
+    }
+    if (!deployedUrl.startsWith("https://")) {
+      const body: ApiResponse = { ok: false, error: "Please enter a valid deployed URL" };
+      return Response.json(body, { status: 400 });
+    }
+
+    user.assessment = {
+      role,
+      answers: [],
+      answersInProgress: new Map<string, number>(),
+      lastQuestionIndex: 0,
+      score: null as any,
+      correctCount: null as any,
+      totalQuestions: null as any,
+      timeTaken: null as any,
+      githubUrl,
+      deployedUrl,
+      notes: notes || "",
+      startedAt: user.assessment?.startedAt ?? new Date(),
+      submittedAt: new Date(),
+      completed: true,
+    };
+  } else {
+    const answers = Array.isArray(bodyJson.answers) ? bodyJson.answers.map((v) => Number(v)) : null;
+    const timeTaken = typeof bodyJson.timeTaken === "number" ? bodyJson.timeTaken : null;
+    if (!answers || timeTaken === null) {
+      const body: ApiResponse = { ok: false, error: "Missing assessment payload" };
+      return Response.json(body, { status: 400 });
+    }
+
+    const questionSet = BDE_QUESTIONS;
+    const totalQuestions = BDE_TOTAL_QUESTIONS;
+    let correctCount = 0;
+    questionSet.forEach((q, idx) => {
+      if (answers[idx] === q.correctAnswer) correctCount += 1;
+    });
+    const score = Math.round((correctCount / totalQuestions) * 100);
+
+    user.assessment = {
+      role,
+      answers,
+      answersInProgress: new Map<string, number>(),
+      lastQuestionIndex: 0,
+      score,
+      correctCount,
+      totalQuestions,
+      timeTaken,
+      githubUrl: null as any,
+      deployedUrl: null as any,
+      notes: null as any,
+      startedAt: user.assessment?.startedAt ?? new Date(),
+      submittedAt: new Date(),
+      completed: true,
+    };
+  }
 
   user.funnel.currentStep = 7;
   const nextCompleted = new Set<number>(user.funnel.completedSteps ?? []);

@@ -10,10 +10,6 @@ export interface IUser {
   collegeOrCompany: string;
   registeredAt: Date;
 
-  referralCode?: string;
-  referredBy?: string | null;
-  referralCount: number;
-
   role: "BDE" | "Fullstack" | null;
   points: number;
 
@@ -67,6 +63,9 @@ export interface IUser {
     correctCount?: number;
     totalQuestions?: number;
     timeTaken?: number;
+    githubUrl?: string | null;
+    deployedUrl?: string | null;
+    notes?: string | null;
     startedAt?: Date;
     submittedAt?: Date;
     completed: boolean;
