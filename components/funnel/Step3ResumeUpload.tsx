@@ -283,7 +283,7 @@ export default function Step3ResumeUpload(props: {
 
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-10"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />
@@ -325,7 +325,7 @@ export default function Step3ResumeUpload(props: {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-xl rounded-[24px] border border-[#6952a2]/35 bg-[#0d0d1a]/40 p-8 backdrop-blur-2xl">
+      <div className="relative z-10 mx-auto w-full max-w-xl rounded-[24px] border border-[#6952a2]/35 bg-[#0d0d1a]/40 p-5 sm:p-8 backdrop-blur-2xl">
         <div className="text-center">
           <div className="rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-center text-[12px] font-semibold tracking-[0.2em] text-[#f4e401]">
             Step 3 of 7
@@ -468,7 +468,7 @@ export default function Step3ResumeUpload(props: {
               style={{
                 border: dragOver ? "2px dashed rgba(244,228,1,1)" : "2px dashed rgba(105,82,162,0.4)",
                 background: dragOver ? "rgba(244,228,1,0.05)" : "transparent",
-                padding: 48,
+                padding: "28px 20px",
                 textAlign: "center",
               }}
             >

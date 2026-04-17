@@ -78,14 +78,14 @@ export default function Step4Certificate(props: {
   }
 
   return (
-    <section className="px-6 py-16">
+    <section className="px-4 py-10 sm:px-6 sm:py-16">
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="mx-auto w-full max-w-4xl"
       >
-        <div className="rounded-2xl border border-primary/70 bg-gradient-to-br from-secondary/60 to-dark p-8">
+        <div className="rounded-2xl border border-primary/70 bg-gradient-to-br from-secondary/60 to-dark p-5 sm:p-8">
           <div className="inline-flex items-center rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-[12px] font-semibold tracking-[0.1em] text-[#f4e401]">
             Step 5 of 7
           </div>
@@ -103,7 +103,7 @@ export default function Step4Certificate(props: {
             </ul>
             {blobUrl ? (
               <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-white">
-                <iframe src={blobUrl} title="Certificate preview" className="h-[420px] w-full" />
+                <iframe src={blobUrl} title="Certificate preview" className="h-[260px] w-full sm:h-[360px] lg:h-[420px]" />
               </div>
             ) : null}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-cream/80">

@@ -91,45 +91,55 @@ function InstagramIcon() {
 }
 
 function CountdownRing(props: { secondsLeft: number; totalSeconds: number }) {
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  const progress = props.totalSeconds > 0 ? props.secondsLeft / props.totalSeconds : 0;
-  const dashOffset = c * (1 - progress);
+  const progress = props.totalSeconds > 0 ? (props.secondsLeft / props.totalSeconds) * 100 : 0;
+  const isDanger = props.secondsLeft <= 5;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 112, height: 112 }}>
-      <svg width={112} height={112} viewBox="0 0 112 112" className="absolute inset-0">
-        <circle
-          cx="56"
-          cy="56"
-          r={r}
-          stroke="rgba(105,82,162,0.3)"
-          strokeWidth="6"
-          fill="none"
-        />
-        <circle
-          cx="56"
-          cy="56"
-          r={r}
-          stroke="#f4e401"
-          strokeWidth="6"
-          fill="none"
-          strokeLinecap="round"
+    <div className="mt-4 flex flex-col items-center gap-2">
+      <motion.div
+        animate={isDanger ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+        transition={isDanger ? { repeat: Infinity, duration: 0.5 } : undefined}
+        className="font-black"
+        style={{
+          fontSize: 56,
+          lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
+          color: isDanger ? "#ff6b6b" : "#f4e401",
+          textShadow: isDanger ? "0 0 20px rgba(255,107,107,0.6)" : "0 0 20px rgba(244,228,1,0.5)",
+        }}
+      >
+        {props.secondsLeft}
+      </motion.div>
+      <div
+        style={{
+          fontSize: 13,
+          color: "rgba(241,220,186,0.5)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+      >
+        seconds
+      </div>
+      <div
+        className="w-full"
+        style={{
+          height: 3,
+          background: "rgba(241,220,186,0.1)",
+          borderRadius: 9999,
+        }}
+      >
+        <div
           style={{
-            strokeDasharray: c,
-            strokeDashoffset: dashOffset,
-            filter: "drop-shadow(0 0 8px rgba(244,228,1,0.7))",
-            transition: "stroke-dashoffset 90ms linear",
+            width: `${Math.max(0, Math.min(100, progress))}%`,
+            height: "100%",
+            borderRadius: 9999,
+            background: isDanger ? "#ff6b6b" : "#f4e401",
+            boxShadow: isDanger
+              ? "0 0 6px rgba(255,107,107,0.6)"
+              : "0 0 6px rgba(244,228,1,0.6)",
+            transition: "width 1s linear",
           }}
-          transform="rotate(-90 56 56)"
         />
-      </svg>
-
-      <div className="relative text-center">
-        <div className="font-extrabold" style={{ color: "#f4e401", fontSize: 48 }}>
-          {props.secondsLeft}
-        </div>
-        <div style={{ color: "rgba(241,220,186,0.5)", fontSize: 14, fontWeight: 600 }}>seconds</div>
       </div>
     </div>
   );
@@ -256,15 +266,16 @@ export default function Step2SocialFollow(props: {
 
   function startLinkedIn() {
     if (linkedinDone || linkedinEndAt) return;
-    const url = process.env.NEXT_PUBLIC_LINKEDIN_PAGE_URL;
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    window.open('https://www.linkedin.com/company/14573373/admin/dashboard/', '_blank');
     setLinkedinEndAt(Date.now() + TOTAL_SECONDS * 1000);
   }
 
   function startInstagram() {
     if (!linkedinDone || instagramDone || instagramEndAt) return;
-    const url = process.env.NEXT_PUBLIC_INSTAGRAM_URL;
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    window.open(
+      "https://www.instagram.com/gisulcommunity?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
+      "_blank"
+    );
     setInstagramEndAt(Date.now() + TOTAL_SECONDS * 1000);
   }
 

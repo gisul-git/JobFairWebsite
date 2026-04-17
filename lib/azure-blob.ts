@@ -5,10 +5,39 @@ import {
   generateBlobSASQueryParameters,
 } from "@azure/storage-blob";
 
+function cleanEnv(value: string | undefined): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  // Support values pasted with wrapping quotes in env files.
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+function normalizeStorageKey(value: string): string {
+  // Accept either raw account key or a full Azure connection string.
+  if (!value.toLowerCase().includes("accountkey=")) return value;
+
+  const parts = value.split(";");
+  for (const part of parts) {
+    const [rawK, ...rest] = part.split("=");
+    if (!rawK || rest.length === 0) continue;
+    if (rawK.trim().toLowerCase() === "accountkey") {
+      return rest.join("=").trim();
+    }
+  }
+
+  return value;
+}
+
 function getConfig() {
-  const account = process.env.AZURE_STORAGE_ACCOUNT;
-  const key = process.env.AZURE_STORAGE_KEY;
-  const container = process.env.AZURE_CONTAINER_NAME;
+  const account = cleanEnv(process.env.AZURE_STORAGE_ACCOUNT);
+  const key = normalizeStorageKey(cleanEnv(process.env.AZURE_STORAGE_KEY));
+  const container = cleanEnv(process.env.AZURE_CONTAINER_NAME);
 
   if (!account) throw new Error("Missing AZURE_STORAGE_ACCOUNT");
   if (!key) throw new Error("Missing AZURE_STORAGE_KEY");

@@ -217,8 +217,8 @@ export default function HomePage() {
           currentStep === 1
             ? "w-full"
             : currentStep === 2 || currentStep === 3
-              ? "w-full pt-[56px]"
-              : "mx-auto w-full max-w-6xl px-4 py-10 pt-[56px]"
+              ? "w-full pt-[64px] sm:pt-[72px]"
+              : "mx-auto w-full max-w-6xl px-4 py-10 pt-[64px] sm:pt-[72px]"
         }
       >
         <AnimatePresence mode="wait">

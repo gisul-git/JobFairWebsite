@@ -159,18 +159,18 @@ export default function UsersTable() {
       </div>
 
       <div className="mt-5 overflow-x-auto">
-        <table className="min-w-[1100px] w-full border-separate border-spacing-y-2 text-sm">
+        <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm lg:min-w-[980px]">
           <thead>
             <tr className="text-left text-cream/80">
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
-              <th className="px-3 py-2">Phone</th>
-              <th className="px-3 py-2">College/Company</th>
+              <th className="hidden px-3 py-2 md:table-cell">Phone</th>
+              <th className="hidden px-3 py-2 lg:table-cell">College/Company</th>
               <th className="px-3 py-2">Step</th>
               <th className="px-3 py-2">Courses Done</th>
               <th className="px-3 py-2">Certificate</th>
               <th className="px-3 py-2">Social Done</th>
-              <th className="px-3 py-2">Registered At</th>
+              <th className="hidden px-3 py-2 lg:table-cell">Registered At</th>
               <th className="px-3 py-2">Referrals</th>
             </tr>
           </thead>
@@ -208,15 +208,15 @@ export default function UsersTable() {
                       {u?.name}
                     </td>
                     <td className="px-3 py-3 text-white/90">{u?.email}</td>
-                    <td className="px-3 py-3 text-white/90">{u?.phone}</td>
-                    <td className="px-3 py-3 text-white/90">{u?.collegeOrCompany}</td>
+                    <td className="hidden px-3 py-3 text-white/90 md:table-cell">{u?.phone}</td>
+                    <td className="hidden px-3 py-3 text-white/90 lg:table-cell">{u?.collegeOrCompany}</td>
                     <td className="px-3 py-3 text-white/90">{u?.funnel?.currentStep ?? "-"}</td>
                     <td className="px-3 py-3 text-white/90">{coursesDone ? "Yes" : "No"}</td>
                     <td className="px-3 py-3 text-white/90">
                       {u?.certificate?.issued ? "Issued" : "No"}
                     </td>
                     <td className="px-3 py-3 text-white/90">{socialDone ? "Yes" : "No"}</td>
-                    <td className="px-3 py-3 text-white/90">
+                    <td className="hidden px-3 py-3 text-white/90 lg:table-cell">
                       {u?.registeredAt ? new Date(u.registeredAt).toLocaleString() : "-"}
                     </td>
                     <td className="rounded-r-xl px-3 py-3 text-white/90">{u?.referralCount ?? 0}</td>

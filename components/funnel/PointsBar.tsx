@@ -14,7 +14,7 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
   const currentLabel = STEP_LABELS[Math.max(0, Math.min(STEP_LABELS.length - 1, currentStep - 2))] ?? "Register";
 
   const [displayedPoints, setDisplayedPoints] = useState(0);
-  const lastTargetRef = useRef<number>(points);
+  const lastTargetRef = useRef<number>(0);
 
   useEffect(() => {
     if (points <= 0) {
@@ -23,8 +23,12 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
       return;
     }
 
-    // Count up only when the "target" changes.
-    if (lastTargetRef.current === points) return;
+    // Keep UI in sync even when the target value hasn't changed
+    // (e.g. after refresh when points are restored from persisted state).
+    if (lastTargetRef.current === points) {
+      setDisplayedPoints(points);
+      return;
+    }
     lastTargetRef.current = points;
 
     const start = 0;
@@ -52,7 +56,7 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
       initial={{ opacity: 0, y: -56 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed left-0 right-0 top-0 z-50 h-[56px] backdrop-blur-md"
+      className="fixed left-0 right-0 top-0 z-50 h-[64px] sm:h-[72px] backdrop-blur-md"
       style={{
         backgroundColor: "rgba(13, 13, 26, 0.95)",
         borderBottom: "1px solid rgba(241, 220, 186, 0.08)",
@@ -60,10 +64,11 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
     >
       <div className="mx-auto flex h-full items-center px-4" style={{ maxWidth: 1440 }}>
         <div className="flex items-center">
-          <span className="text-[14px] font-extrabold" style={{ color: "#f4e401", letterSpacing: "0.2em" }}>
-            GISUL
-          </span>
-          <span style={{ width: 1, height: 20, backgroundColor: "rgba(241, 220, 186, 0.2)", marginLeft: 16, marginRight: 16 }} />
+          <img src="/gisul-logo.png" alt="GISUL" className="h-10 w-auto object-contain sm:h-12" />
+          <span
+            className="mx-2 hidden sm:inline-block"
+            style={{ width: 1, height: 20, backgroundColor: "rgba(241, 220, 186, 0.2)" }}
+          />
         </div>
 
         <div className="mx-auto flex h-full flex-1 flex-col justify-center">
@@ -105,13 +110,13 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
         </div>
 
         <div className="flex items-center justify-end">
-          <span className="text-[20px] font-extrabold" style={{ color: "#f4e401" }}>
+          <span className="text-[17px] font-extrabold sm:text-[20px]" style={{ color: "#f4e401" }}>
             {displayedPoints}
           </span>
-          <span className="mx-2" style={{ color: "rgba(241, 220, 186, 0.3)", fontWeight: 600 }}>
+          <span className="mx-1 sm:mx-2" style={{ color: "rgba(241, 220, 186, 0.3)", fontWeight: 600 }}>
             /
           </span>
-          <span className="text-[13px] font-semibold" style={{ color: "rgba(241, 220, 186, 0.5)" }}>
+          <span className="text-[11px] font-semibold sm:text-[13px]" style={{ color: "rgba(241, 220, 186, 0.5)" }}>
             {maxPoints} pts
           </span>
         </div>

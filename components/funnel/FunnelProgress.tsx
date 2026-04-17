@@ -34,11 +34,11 @@ export default function FunnelProgress(props: {
 
   return (
     <div className="sticky top-0 z-20 w-full border-b border-[#f1dcba1a] bg-transparent backdrop-blur-sm">
-      <div className="mx-auto w-full max-w-6xl px-4 py-4">
+      <div className="mx-auto w-full max-w-6xl overflow-x-auto px-4 py-4">
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative"
+          className="relative min-w-[420px] sm:min-w-0"
         >
           <div className="relative flex items-start justify-between gap-2">
             <div className="absolute left-0 right-0 top-5 -z-10 h-[3px] rounded-full bg-[#f1dcba26]" />
@@ -58,7 +58,7 @@ export default function FunnelProgress(props: {
               const isCurrent = normalizedStep === step;
 
               return (
-                <div key={step} className="flex min-w-[54px] flex-col items-center gap-2">
+                <div key={step} className="flex min-w-[40px] flex-col items-center gap-2 sm:min-w-[54px]">
                   <button
                     type="button"
                     onClick={() => goToStep(pageStep as any)}
