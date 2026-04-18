@@ -585,8 +585,21 @@ function getFallbackLogoDataUrl() {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
+/**
+ * Sparticuz ships a Linux Chromium binary only. On Windows/macOS (and non-prod Linux dev)
+ * use full `puppeteer`, which downloads/uses a local Chrome. On Linux production (Azure,
+ * Vercel, etc.) use Sparticuz + `puppeteer-core` — no system Chrome required.
+ *
+ * If local launch fails with missing browser: `npx puppeteer browsers install chrome`
+ * Override: FORCE_PUPPETEER_CHROME=1 to use full puppeteer on Linux (debugging).
+ */
+function shouldUseSparticuzChromium(): boolean {
+  if (process.env.FORCE_PUPPETEER_CHROME === "1") return false;
+  return process.env.NODE_ENV === "production" && process.platform === "linux";
+}
+
 async function getBrowser() {
-  try {
+  if (shouldUseSparticuzChromium()) {
     const chromium = (await import("@sparticuz/chromium")).default;
     const puppeteer = await import("puppeteer-core");
     return puppeteer.launch({
@@ -595,20 +608,13 @@ async function getBrowser() {
       executablePath: await chromium.executablePath(),
       headless: true,
     });
-  } catch (error) {
-    // In production/cloud we should not silently fall back to full puppeteer,
-    // because it expects a preinstalled Chrome cache that often doesn't exist.
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
-
-    // Local/dev fallback where full puppeteer can manage browser binaries.
-    const puppeteer = await import("puppeteer");
-    return puppeteer.default.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
   }
+
+  const puppeteer = await import("puppeteer");
+  return puppeteer.default.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
 }
 
 export async function generateCertificate(user: IUser & { certificateId?: string }): Promise<Buffer> {
@@ -640,7 +646,8 @@ export async function generateCertificate(user: IUser & { certificateId?: string
   const browser = await getBrowser();
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    // Do not use networkidle0: Google Fonts in the template keep the network busy → 30s timeout.
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 60_000 });
     const pdf = await page.pdf({
       width: "1122px",
       height: "794px",
