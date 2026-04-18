@@ -75,7 +75,12 @@ export default function Step4Certificate(props: {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ userId: props.userId }),
     });
-    const json = (await res.json()) as any;
+    let json: any = null;
+    try {
+      json = await res.json();
+    } catch {
+      json = null;
+    }
     if (!res.ok || !json?.ok) return null;
     const url = json.data?.blobUrl as string | undefined;
     if (url) {

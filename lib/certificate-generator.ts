@@ -577,6 +577,14 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   return certificateHTML;
 }
 
+function getFallbackLogoDataUrl() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="120" viewBox="0 0 400 120" role="img" aria-label="GISUL logo">
+    <rect width="400" height="120" fill="#ffffff"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#2D1B69">GISUL</text>
+  </svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
 async function getBrowser() {
   if (process.env.VERCEL) {
     const chromium = (await import("@sparticuz/chromium")).default;
@@ -604,8 +612,14 @@ export async function generateCertificate(user: IUser & { certificateId?: string
     year: "numeric",
   });
   const logoPath = path.join(process.cwd(), "public", "gisul-logo.png");
-  const logoBuffer = await readFile(logoPath);
-  const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  let logoSrc: string;
+  try {
+    const logoBuffer = await readFile(logoPath);
+    logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  } catch {
+    // Ensure PDF generation still works if logo asset is missing in runtime environment.
+    logoSrc = getFallbackLogoDataUrl();
+  }
   const html = buildCertificateHtml({
     name: user.name,
     downloadedDate,
