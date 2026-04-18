@@ -14,19 +14,31 @@ type ProgressBody = {
   watchedSeconds?: number;
 };
 
+function normalizeBaseUrl(value?: string): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
 async function triggerCertificateGeneration(userId: string) {
-  const base =
+  const rawBase =
     process.env.APP_URL ??
     process.env.NEXTAUTH_URL ??
     process.env.NEXT_PUBLIC_APP_URL;
 
+  const base = normalizeBaseUrl(rawBase);
   if (!base) return;
 
-  await fetch(new URL("/api/certificate/generate", base), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ userId }),
-  });
+  try {
+    await fetch(new URL("/api/certificate/generate", base), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+  } catch {
+    // Best-effort background trigger; certificate can still be generated from Step 5.
+  }
 }
 
 export async function POST(req: Request): Promise<Response> {

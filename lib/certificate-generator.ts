@@ -586,19 +586,23 @@ function getFallbackLogoDataUrl() {
 }
 
 async function getBrowser() {
-  if (process.env.VERCEL) {
+  try {
     const chromium = (await import("@sparticuz/chromium")).default;
     const puppeteer = await import("puppeteer-core");
     return puppeteer.launch({
-      args: chromium.args,
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
       defaultViewport: (chromium as any).defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: true,
     });
+  } catch {
+    // Fallback for local/dev environments where full puppeteer can manage browser binary.
+    const puppeteer = await import("puppeteer");
+    return puppeteer.default.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
   }
-
-  const puppeteer = await import("puppeteer");
-  return puppeteer.default.launch({ headless: true });
 }
 
 export async function generateCertificate(user: IUser & { certificateId?: string }): Promise<Buffer> {
