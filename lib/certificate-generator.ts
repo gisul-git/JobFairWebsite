@@ -30,44 +30,59 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  @page {
+    size: 1122px 794px;
+    margin: 0;
+  }
+
+  html, body {
+    width: 1122px;
+    height: 794px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   body {
     width: 1122px;
     height: 794px;
-    background: #fff;
+    background: radial-gradient(circle at top, #f3f2fb 0%, #eceaf4 45%, #fdfdfd 100%);
     font-family: 'Lato', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
   }
 
   .cert {
     width: 1122px;
     height: 794px;
     position: relative;
-    background: #fff;
+    background: #ffffff;
     overflow: hidden;
+    box-shadow: 0 18px 50px rgba(20, 15, 70, 0.12);
   }
 
   /* ── Outer border frame ── */
   .border-outer {
     position: absolute;
     inset: 0;
-    border: 14px solid #2D1B69;
+    border: 10px solid #2D1B69;
+    box-shadow: inset 0 0 0 4px rgba(244,228,1,0.22), 0 18px 40px rgba(20,15,70,0.08);
     z-index: 2;
     pointer-events: none;
   }
   .border-inner {
     position: absolute;
-    inset: 14px;
-    border: 3px solid #F4E401;
+    inset: 16px;
+    border: 2px solid rgba(244,228,1,0.9);
+    box-shadow: inset 0 0 0 1px rgba(45,27,105,0.14);
     z-index: 2;
     pointer-events: none;
   }
   .border-accent {
     position: absolute;
-    inset: 22px;
-    border: 1px solid rgba(45,27,105,0.15);
+    inset: 26px;
+    border: 1px dotted rgba(45,27,105,0.16);
     z-index: 2;
     pointer-events: none;
   }
@@ -85,11 +100,11 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   }
   .watermark-text {
     font-family: 'Cinzel', serif;
-    font-size: 180px;
+    font-size: 240px;
     font-weight: 900;
-    color: rgba(244,228,1,0.045);
-    letter-spacing: 0.05em;
-    transform: rotate(-25deg);
+    color: rgba(45, 27, 105, 0.05);
+    letter-spacing: 0.08em;
+    transform: rotate(-20deg);
     white-space: nowrap;
     user-select: none;
   }
@@ -112,29 +127,33 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
     position: absolute;
     left: 0;
     top: 0;
-    width: 10px;
+    width: 6px;
     height: 100%;
     background: linear-gradient(180deg, #F4E401 0%, #2D1B69 50%, #F4E401 100%);
     z-index: 3;
+    opacity: 0.95;
   }
   .right-stripe {
     position: absolute;
     right: 0;
     top: 0;
-    width: 10px;
+    width: 6px;
     height: 100%;
     background: linear-gradient(180deg, #F4E401 0%, #2D1B69 50%, #F4E401 100%);
     z-index: 3;
+    opacity: 0.95;
   }
 
   /* ── Main content ── */
   .content {
     position: absolute;
-    inset: 30px 38px;
+    inset: 24px 46px 40px;
     z-index: 4;
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-width: 980px;
+    margin: 0 auto;
   }
 
   /* ── Header row ── */
@@ -142,81 +161,78 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
     width: 100%;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    padding-top: 10px;
-    padding-bottom: 8px;
+    align-items: center;
+    padding-top: 22px;
+    padding-bottom: 14px;
   }
   .logo-area {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
   }
   .logo-img {
-    height: 44px;
+    height: 68px;
     width: auto;
     max-width: 220px;
     object-fit: contain;
   }
   .logo-sub {
     font-family: 'Lato', sans-serif;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.24em;
     color: #F4E401;
     background: #2D1B69;
-    padding: 2px 6px;
-    margin-top: 3px;
+    padding: 4px 12px;
     text-transform: uppercase;
   }
 
-  .header-dots {
-    display: grid;
-    grid-template-columns: repeat(5, 7px);
-    gap: 4px;
-    opacity: 0.6;
+  .header-tagline {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    color: #5B4FCF;
+    text-transform: uppercase;
+    opacity: 0.9;
+    max-width: 260px;
+    text-align: right;
+    line-height: 1.3;
   }
-  .header-dots span {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #2D1B69;
-    display: block;
-  }
-  .header-dots span:nth-child(n+6) { background: #F4E401; }
 
   /* ── Title block ── */
   .title-block {
     text-align: center;
-    margin-top: 12px;
+    margin-top: 24px;
   }
   .title-label {
     font-family: 'Lato', sans-serif;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.5em;
+    letter-spacing: 0.45em;
     color: #F4E401;
     text-transform: uppercase;
     background: #2D1B69;
     display: inline-block;
-    padding: 4px 18px;
-    margin-bottom: 10px;
+    padding: 6px 22px;
+    margin-bottom: 16px;
   }
   .title-main {
     font-family: 'Cinzel', serif;
-    font-size: 58px;
+    font-size: 98px;
     font-weight: 900;
     color: #2D1B69;
     letter-spacing: 0.12em;
-    line-height: 1;
+    line-height: 0.94;
     text-transform: uppercase;
   }
   .title-sub {
     font-family: 'Cinzel', serif;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 400;
-    letter-spacing: 0.5em;
+    letter-spacing: 0.6em;
     color: #5B4FCF;
-    margin-top: 4px;
+    margin-top: 12px;
     text-transform: uppercase;
   }
 
@@ -224,14 +240,14 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   .rule {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin: 12px 0 10px;
-    width: 480px;
+    gap: 12px;
+    margin: 18px 0 14px;
+    width: 560px;
   }
-  .rule-line { flex: 1; height: 1px; background: #2D1B69; opacity: 0.25; }
+  .rule-line { flex: 1; height: 1px; background: #2D1B69; opacity: 0.22; }
   .rule-diamond {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background: #F4E401;
     transform: rotate(45deg);
     border: 1px solid #2D1B69;
@@ -241,46 +257,48 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   /* ── Presenter text ── */
   .presented-to {
     font-family: 'Lato', sans-serif;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.38em;
-    color: #888;
+    letter-spacing: 0.34em;
+    color: #7a7a7a;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
   }
 
   /* ── Recipient name ── */
   .recipient {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 72px;
+    font-size: 108px;
     font-weight: 700;
     font-style: italic;
     color: #2D1B69;
-    letter-spacing: 0.02em;
-    line-height: 1;
+    letter-spacing: 0.01em;
+    line-height: 0.96;
     text-align: center;
+    margin-bottom: 18px;
   }
 
   /* ── Course info ── */
   .course-wrap {
-    margin-top: 10px;
+    margin-top: 18px;
     text-align: center;
   }
   .course-intro {
     font-family: 'Lato', sans-serif;
-    font-size: 10.5px;
-    letter-spacing: 0.12em;
-    color: #666;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: #5d5d84;
     text-transform: uppercase;
-    font-weight: 400;
+    font-weight: 500;
   }
   .course-name {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 22px;
+    font-size: 32px;
     font-weight: 700;
     color: #2D1B69;
-    letter-spacing: 0.06em;
-    margin-top: 2px;
+    letter-spacing: 0.04em;
+    margin-top: 10px;
+    line-height: 1.25;
   }
   .course-name span { color: #5B4FCF; }
 
@@ -291,9 +309,8 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
     justify-content: space-between;
     align-items: flex-end;
     margin-top: auto;
-    padding-bottom: 10px;
-    padding-left: 30px;
-    padding-right: 30px;
+    padding: 0 30px 28px;
+    gap: 24px;
   }
 
   /* Left meta */
@@ -301,12 +318,13 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-left: 30px;
   }
   .meta-row {
     font-family: 'Lato', sans-serif;
-    font-size: 8.5px;
-    letter-spacing: 0.15em;
-    color: #888;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: #777;
     text-transform: uppercase;
   }
   .meta-row strong {
@@ -315,10 +333,10 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   }
   .meta-program {
     font-family: 'Cinzel', serif;
-    font-size: 8px;
+    font-size: 8.5px;
     font-weight: 600;
     color: #5B4FCF;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.25em;
     margin-top: 6px;
     text-transform: uppercase;
   }
@@ -332,34 +350,34 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
   }
   .sig-script {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 30px;
+    font-size: 34px;
     font-style: italic;
     color: #2D1B69;
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-weight: 600;
   }
   .sig-line {
-    width: 160px;
+    width: 180px;
     height: 1px;
     background: #2D1B69;
-    margin: 0 auto 5px;
+    margin: 0 auto 6px;
     opacity: 0.4;
   }
   .sig-name {
     font-family: 'Cinzel', serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: #2D1B69;
     letter-spacing: 0.1em;
   }
   .sig-title {
     font-family: 'Lato', sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.2em;
+    font-size: 10px;
+    letter-spacing: 0.22em;
     color: #5B4FCF;
     text-transform: uppercase;
-    margin-top: 2px;
+    margin-top: 4px;
   }
 
   /* Seal badge */
@@ -368,58 +386,72 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
     flex-direction: column;
     align-items: center;
     position: relative;
+    margin-right: 30px;
   }
   .seal-circle {
-    width: 88px;
-    height: 88px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
-    background: radial-gradient(circle at 38% 38%, #F4E401, #d4c000);
-    border: 3px solid #2D1B69;
+    background: radial-gradient(circle at 30% 30%, #fff9b2 0%, #f4e401 35%, #d4c000 100%);
+    border: 4px solid #2D1B69;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 20px rgba(244,228,1,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+    box-shadow: 0 8px 20px rgba(20,15,70,0.12), inset 0 1px 0 rgba(255,255,255,0.4);
     position: relative;
   }
   .seal-circle::before {
     content: '';
     position: absolute;
-    inset: 4px;
+    inset: 8px;
     border-radius: 50%;
-    border: 1px dashed rgba(45,27,105,0.5);
+    border: 1px solid rgba(45,27,105,0.18);
   }
-  .seal-stars { font-size: 10px; letter-spacing: 2px; color: #2D1B69; }
+  .seal-circle::after {
+    content: '';
+    position: absolute;
+    inset: 22px;
+    border-radius: 50%;
+    border: 1px dashed rgba(45,27,105,0.22);
+  }
+  .seal-stars {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #2D1B69;
+    margin-bottom: 4px;
+  }
   .seal-text {
     font-family: 'Cinzel', serif;
-    font-size: 7.5px;
+    font-size: 9px;
     font-weight: 700;
     color: #2D1B69;
     text-align: center;
     letter-spacing: 0.08em;
     line-height: 1.3;
     text-transform: uppercase;
-    padding: 0 6px;
-    margin-top: 4px;
+    padding: 0 8px;
+    margin-top: 2px;
   }
   .seal-pin {
+    position: relative;
     width: 0;
     height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-top: 14px solid #2D1B69;
-    margin-top: -1px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 16px solid #2D1B69;
+    margin-top: -4px;
   }
   .seal-pin-inner {
     position: absolute;
-    bottom: -10px;
+    top: 1px;
     left: 50%;
     transform: translateX(-50%);
     width: 0;
     height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 10px solid #d4c000;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 12px solid #d4c000;
   }
 </style>
 </head>
@@ -478,13 +510,7 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
         <img class="logo-img" src="${logoSrc}" alt="GISUL" />
         <div class="logo-sub">Learning Program</div>
       </div>
-      <div class="header-dots">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
+      <div class="header-tagline">Connecting Minds, Elevating Skills</div>
     </div>
 
     <!-- Title -->
@@ -520,7 +546,7 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
       <div class="meta">
         <div class="meta-row">Issue Date: <strong>${downloadedDate}</strong></div>
         <div class="meta-row">Certificate ID: <strong style="font-family:monospace;letter-spacing:0.08em;">${certificateId}</strong></div>
-        <div class="meta-program">GISUL · Global Institute of Skills &amp; Upskilling in Learning</div>
+        <div class="meta-program">GISUL · Connecting Minds, Elevating Skills</div>
       </div>
 
       <div class="sig">
@@ -535,9 +561,8 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
           <div class="seal-stars">★ ★ ★</div>
           <div class="seal-text">Achievement<br>Award</div>
         </div>
-        <div style="position:relative;width:18px;height:14px;margin-top:0;">
-          <div style="position:absolute;left:0;top:0;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid #2D1B69;"></div>
-          <div style="position:absolute;left:3px;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #d4c000;"></div>
+        <div class="seal-pin">
+          <div class="seal-pin-inner"></div>
         </div>
       </div>
 

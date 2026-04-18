@@ -121,3 +121,16 @@ export async function getSasUrl(blobName: string): Promise<string> {
   return `${getPublicBlobUrl(blobName)}?${sas}`;
 }
 
+/** Best-effort delete for an uploaded blob by its stored URL. */
+export async function deleteBlobByUrl(blobUrl: string): Promise<boolean> {
+  const blobName = blobNameFromAzureBlobUrl(blobUrl);
+  if (!blobName) return false;
+
+  const { container } = getConfig();
+  const service = BlobServiceClient.fromConnectionString(getConnectionString());
+  const containerClient = service.getContainerClient(container);
+  const blobClient = containerClient.getBlockBlobClient(blobName);
+  const result = await blobClient.deleteIfExists();
+  return result.succeeded;
+}
+

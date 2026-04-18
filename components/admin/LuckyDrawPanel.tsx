@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 export default function LuckyDrawPanel() {
   const { data: session } = useSession();
-  const adminId = (session?.user as any)?.id as string | undefined;
+  const isAdmin = Boolean((session?.user as any)?.isAdmin);
 
   const [numberOfWinners, setNumberOfWinners] = useState(3);
   const [prizes, setPrizes] = useState<string[]>(["Free Goodies", "Course Scholarship Voucher", "Internship Fast-Track"]);
@@ -41,12 +41,12 @@ export default function LuckyDrawPanel() {
   }
 
   async function runLuckyDraw() {
-    if (!adminId) return;
+    if (!isAdmin) return;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/lucky-draw", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-user-id": adminId },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ numberOfWinners, prizes }),
       });
       const json = (await res.json()) as any;
@@ -59,28 +59,28 @@ export default function LuckyDrawPanel() {
   }
 
   return (
-    <section className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+    <section className="rounded-2xl border border-white/10 bg-[#11162a]/85 p-5 backdrop-blur sm:p-6">
       <div className="text-xl font-extrabold text-white">Lucky Draw</div>
       <div className="mt-1 text-sm text-cream/80">Run weighted winners selection and export results.</div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-secondary/40 bg-secondary/10 p-4">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <div className="text-sm font-semibold text-cream/80">Number of winners</div>
           <input
             value={numberOfWinners}
             onChange={(e) => setNumberOfWinners(Math.max(1, Number(e.target.value) || 1))}
             type="number"
-            className="mt-2 w-full rounded-xl border border-cream/20 bg-transparent px-4 py-2 text-white outline-none focus:border-primary"
+            className="mt-2 w-full rounded-xl border border-white/15 bg-transparent px-4 py-2 text-white outline-none transition focus:border-primary"
           />
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-secondary/40 bg-secondary/10 p-4">
+        <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-cream/80">Prizes</div>
             <button
               type="button"
               onClick={() => setPrizes((p) => [...p, "New Prize"])}
-              className="rounded-full border border-cream/20 bg-white/5 px-4 py-1.5 text-xs font-bold text-white"
+              className="rounded-full border border-cream/20 bg-white/5 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-white/10"
             >
               + Add
             </button>
@@ -93,12 +93,12 @@ export default function LuckyDrawPanel() {
                   onChange={(e) =>
                     setPrizes((prev) => prev.map((x, i) => (i === idx ? e.target.value : x)))
                   }
-                  className="flex-1 rounded-xl border border-cream/20 bg-transparent px-4 py-2 text-white outline-none focus:border-primary"
+                  className="flex-1 rounded-xl border border-cream/20 bg-transparent px-4 py-2 text-white outline-none transition focus:border-primary"
                 />
                 <button
                   type="button"
                   onClick={() => setPrizes((prev) => prev.filter((_, i) => i !== idx))}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/90"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/90 transition hover:bg-white/10"
                 >
                   Remove
                 </button>
@@ -118,7 +118,7 @@ export default function LuckyDrawPanel() {
           whileTap={{ scale: loading ? 1 : 0.99 }}
           disabled={!canRun || loading}
           onClick={() => void runLuckyDraw()}
-          className="rounded-full bg-primary px-8 py-3 font-bold text-dark disabled:opacity-60"
+          className="rounded-full bg-primary px-8 py-3 font-bold text-dark transition hover:brightness-105 disabled:opacity-60"
         >
           {loading ? "Running…" : "Run Lucky Draw"}
         </motion.button>
@@ -126,7 +126,7 @@ export default function LuckyDrawPanel() {
           type="button"
           onClick={exportWinners}
           disabled={winners.length === 0}
-          className="rounded-full border border-primary/40 bg-primary/10 px-8 py-3 font-bold text-primary disabled:opacity-50"
+          className="rounded-full border border-primary/40 bg-primary/10 px-8 py-3 font-bold text-primary transition hover:bg-primary/20 disabled:opacity-50"
         >
           Export Winners
         </button>
@@ -141,7 +141,7 @@ export default function LuckyDrawPanel() {
             winners.map((w) => (
               <div
                 key={w.id}
-                className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <div className="font-bold text-white">{w.name}</div>

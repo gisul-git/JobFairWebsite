@@ -84,6 +84,7 @@ export default function Step7HRContact(props: {
   userData: Partial<IUser> & { _id?: string; id?: string };
   setUserData: (u: Partial<IUser> & { _id?: string; id?: string }) => void;
   setCurrentStep: (step: number) => void;
+  showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
   const [completeError, setCompleteError] = useState<string | null>(null);
   const [fullAddress, setFullAddress] = useState(props.userData?.address || "");
@@ -92,6 +93,7 @@ export default function Step7HRContact(props: {
   const [addressSaved, setAddressSaved] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [certificateLoading, setCertificateLoading] = useState(false);
 
   const name = props.userData?.name ?? "Candidate";
   const role = props.userData?.role === "BDE" ? "BDE" : props.userData?.role === "Fullstack" ? "Fullstack" : null;
@@ -157,6 +159,111 @@ export default function Step7HRContact(props: {
   useEffect(() => {
     setFullAddress(props.userData?.address || "");
   }, [props.userData?.address]);
+
+  function hasLikelySas(url: string) {
+    try {
+      const parsed = new URL(url);
+      return parsed.searchParams.has("sig") || parsed.searchParams.has("sv");
+    } catch {
+      return false;
+    }
+  }
+
+  async function getReadableCertificateUrl(stored: string): Promise<string | null> {
+    try {
+      if (hasLikelySas(stored)) {
+        const head = await fetch(stored, { method: "HEAD" });
+        if (head.ok) return stored;
+      }
+      const res = await fetch(`/api/certificate/sas?url=${encodeURIComponent(stored)}`);
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok && json.data?.url) return String(json.data.url);
+    } catch {
+      // fall through
+    }
+    return null;
+  }
+
+  async function requestGenerateCertificate() {
+    const userId = String(props.userData?._id ?? props.userData?.id ?? "").trim();
+    if (!userId) return null;
+
+    const res = await fetch("/api/certificate/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const json = (await res.json()) as any;
+    if (!res.ok || !json?.ok) return null;
+
+    const url = json.data?.blobUrl as string | undefined;
+    if (url) {
+      props.setUserData({
+        ...props.userData,
+        certificate: {
+          ...(props.userData.certificate as any),
+          blobUrl: url,
+          issued: true,
+          issuedAt: new Date().toISOString() as any,
+        },
+      });
+    }
+    return url ?? null;
+  }
+
+  async function ensureCertificateUrl() {
+    const blobUrl = props.userData?.certificate?.blobUrl;
+    if (blobUrl) {
+      const readable = await getReadableCertificateUrl(blobUrl);
+      if (readable) return readable;
+    }
+
+    setCertificateLoading(true);
+    try {
+      return await requestGenerateCertificate();
+    } finally {
+      setCertificateLoading(false);
+    }
+  }
+
+  async function onDownloadCertificate() {
+    const url = await ensureCertificateUrl();
+    if (!url) {
+      props.showToast("Could not download certificate. Try again.", "error");
+      return;
+    }
+
+    try {
+      const safeName = String(name ?? "certificate")
+        .trim()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gisul-certificate-${safeName || "user"}.pdf`;
+      a.rel = "noopener noreferrer";
+      a.target = "_self";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.href = url;
+      }
+    }
+
+    props.showToast("Certificate downloaded successfully", "success");
+  }
+
+  async function onShareLinkedIn() {
+    const url = await ensureCertificateUrl();
+    const shareUrl = new URL("https://www.linkedin.com/sharing/share-offsite/");
+    shareUrl.searchParams.set("url", url ?? window.location.href);
+    window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
+    props.showToast("Opened LinkedIn share", "success");
+  }
 
   async function saveAddress() {
     setAddressError(null);
@@ -358,6 +465,30 @@ export default function Step7HRContact(props: {
                 title="Direct Outreach"
                 body="Our HR team will reach out to shortlisted candidates via call or email within 2 business days"
               />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border p-5 sm:p-6" style={{ background: "rgba(10,102,194,0.08)", borderColor: "rgba(10,102,194,0.35)" }}>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <motion.button
+                type="button"
+                whileHover={{ scale: certificateLoading ? 1 : 1.02 }}
+                whileTap={{ scale: certificateLoading ? 1 : 0.98 }}
+                onClick={() => void onDownloadCertificate()}
+                disabled={certificateLoading}
+                className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f4e401] px-6 py-3 text-sm font-bold text-[#1a1a2e] disabled:opacity-70"
+              >
+                {certificateLoading ? "Preparing certificate..." : "Download Certificate"}
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => void onShareLinkedIn()}
+                className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-6 py-3 text-sm font-bold text-white"
+              >
+                Share on LinkedIn
+              </motion.button>
             </div>
           </div>
 

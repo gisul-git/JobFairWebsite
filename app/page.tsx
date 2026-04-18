@@ -269,6 +269,7 @@ export default function HomePage() {
                 userData={userData}
                 setUserData={setUserData}
                 setCurrentStep={setCurrentStep}
+                showToast={showToast}
               />
             </motion.div>
           ) : null}
@@ -280,6 +281,7 @@ export default function HomePage() {
                 userData={userData as any}
                 setUserData={setUserData}
                 setCurrentStep={setCurrentStep}
+                showToast={showToast}
               />
             </motion.div>
           ) : null}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GISUL">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d1a" />
+      <stop offset="100%" stop-color="#1a1a2e" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f4e401" />
+      <stop offset="100%" stop-color="#6952a2" />
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="62" height="62" rx="14" fill="url(#bg)" stroke="rgba(241,220,186,0.25)" />
+
+  <path
+    d="M32 14a18 18 0 1 0 0 36c8.2 0 14.6-4.4 16.8-11.2H35.2v-8.2h14.4c-0.3-9.8-7.7-16.6-17.6-16.6z"
+    fill="url(#accent)"
+  />
+  <circle cx="46.5" cy="18" r="2.4" fill="#f4e401" />
+</svg>

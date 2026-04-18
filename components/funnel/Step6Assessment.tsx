@@ -651,12 +651,6 @@ export default function Step6Assessment(props: {
               </div>
             </div>
 
-            {alreadySubmitted ? null : (
-              <div className="mt-4 text-sm font-medium" style={{ color: "rgba(241,220,186,0.6)" }}>
-                {correctCount} / {totalQuestions} answers submitted
-              </div>
-            )}
-
             <motion.button
               type="button"
               whileHover={{ scale: 1.02, boxShadow: "0 0 60px rgba(244,228,1,0.55)" }}
