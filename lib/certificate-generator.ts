@@ -595,8 +595,14 @@ async function getBrowser() {
       executablePath: await chromium.executablePath(),
       headless: true,
     });
-  } catch {
-    // Fallback for local/dev environments where full puppeteer can manage browser binary.
+  } catch (error) {
+    // In production/cloud we should not silently fall back to full puppeteer,
+    // because it expects a preinstalled Chrome cache that often doesn't exist.
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+
+    // Local/dev fallback where full puppeteer can manage browser binaries.
     const puppeteer = await import("puppeteer");
     return puppeteer.default.launch({
       headless: true,
