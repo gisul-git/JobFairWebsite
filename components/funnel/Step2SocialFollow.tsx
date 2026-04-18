@@ -212,7 +212,7 @@ export default function Step2SocialFollow(props: {
     return () => window.clearInterval(id);
   }, [instagramEndAt]);
 
-  const TOTAL_SECONDS = 30;
+  const TOTAL_SECONDS = 15;
   const linkedinSecondsLeft = linkedinEndAt ? Math.max(0, Math.ceil((linkedinEndAt - linkedinNow) / 1000)) : 0;
   const instagramSecondsLeft = instagramEndAt ? Math.max(0, Math.ceil((instagramEndAt - instagramNow) / 1000)) : 0;
 

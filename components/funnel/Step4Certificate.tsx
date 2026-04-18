@@ -109,29 +109,35 @@ export default function Step4Certificate(props: {
 
   async function onDownload() {
     const url = await ensureCertificate();
-    if (url) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to download certificate");
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = objectUrl;
-        const safeName = String(name ?? "certificate")
-          .trim()
-          .replace(/[^a-z0-9]+/gi, "-")
-          .replace(/^-+|-+$/g, "")
-          .toLowerCase();
-        a.download = `gisul-certificate-${safeName || "user"}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(objectUrl);
-        setDownloaded(true);
-      } catch {
-        props.showToast("Could not download certificate. Try again.", "error");
-        return;
+    if (!url) {
+      props.showToast("Could not download certificate. Try again.", "error");
+      return;
+    }
+
+    try {
+      // Use direct navigation to the signed blob URL.
+      // This avoids mobile browser issues with fetch/blob downloads across origins.
+      const safeName = String(name ?? "certificate")
+        .trim()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gisul-certificate-${safeName || "user"}.pdf`;
+      a.rel = "noopener noreferrer";
+      a.target = "_self";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setDownloaded(true);
+    } catch {
+      // Fallback for browsers that ignore download attribute on cross-origin URLs.
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.href = url;
       }
+      setDownloaded(true);
     }
 
     props.showToast("Certificate downloaded successfully", "success");
