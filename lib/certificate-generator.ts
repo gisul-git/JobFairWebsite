@@ -1,5 +1,7 @@
 import { nanoid } from "nanoid";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 
 import type { IUser } from "@/types";
@@ -598,14 +600,70 @@ function shouldUseSparticuzChromium(): boolean {
   return process.env.NODE_ENV === "production" && process.platform === "linux";
 }
 
+/** GitHub release pack when `node_modules/@sparticuz/chromium/bin` is missing (common on slim deployments). */
+function defaultChromiumPackTarUrl(version: string): string {
+  const tag = `v${version}`;
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  return `https://github.com/Sparticuz/chromium/releases/download/${tag}/chromium-${tag}-pack.${arch}.tar`;
+}
+
+/** package.json is not an export of @sparticuz/chromium — resolve main and walk up to package root. */
+function getSparticuzPackageInfo(req: NodeJS.Require): { root: string; version: string } | null {
+  let dir = path.dirname(req.resolve("@sparticuz/chromium"));
+  for (let i = 0; i < 12; i++) {
+    const pkgPath = path.join(dir, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { name?: string; version?: string };
+        if (pkg.name === "@sparticuz/chromium" && pkg.version) {
+          return { root: dir, version: pkg.version };
+        }
+      } catch {
+        // continue walking
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+/**
+ * Resolves Sparticuz Chromium: local `bin` if present, else HTTPS pack URL (Sparticuz supports URL input).
+ * Optional env: CHROMIUM_PACK_URL (e.g. self-hosted tar for air‑gapped).
+ */
+async function getSparticuzExecutablePath(
+  chromium: typeof import("@sparticuz/chromium").default
+): Promise<string> {
+  const envUrl = process.env.CHROMIUM_PACK_URL?.trim();
+  if (envUrl) {
+    return chromium.executablePath(envUrl);
+  }
+
+  const req = createRequire(import.meta.url);
+  const info = getSparticuzPackageInfo(req);
+  if (!info) {
+    return chromium.executablePath(defaultChromiumPackTarUrl("147.0.0"));
+  }
+
+  const binDir = path.join(info.root, "bin");
+  if (existsSync(binDir)) {
+    return chromium.executablePath();
+  }
+
+  return chromium.executablePath(defaultChromiumPackTarUrl(info.version));
+}
+
 async function getBrowser() {
   if (shouldUseSparticuzChromium()) {
     const chromium = (await import("@sparticuz/chromium")).default;
     const puppeteer = await import("puppeteer-core");
+    const executablePath = await getSparticuzExecutablePath(chromium);
     return puppeteer.launch({
       args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
       defaultViewport: (chromium as any).defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: true,
     });
   }
