@@ -73,7 +73,30 @@ export async function uploadToBlob(buffer: Buffer, filename: string): Promise<st
     blobHTTPHeaders: { blobContentType: contentType },
   });
 
-  return getPublicBlobUrl(filename);
+  // Private containers return 404-style XML to anonymous clients without a SAS token.
+  return getSasUrl(filename);
+}
+
+/** Extract blob path (filename within container) from our Azure blob URL. */
+export function blobNameFromAzureBlobUrl(blobUrl: string): string | null {
+  try {
+    const u = new URL(blobUrl);
+    const path = u.pathname.replace(/^\/+/, "");
+    const { container } = getConfig();
+    const prefix = `${container}/`;
+    if (!path.startsWith(prefix)) return null;
+    const encodedName = path.slice(prefix.length);
+    return decodeURIComponent(encodedName);
+  } catch {
+    return null;
+  }
+}
+
+/** Fresh read-only SAS for an existing blob (e.g. after an old SAS expired). */
+export async function getReadSasForBlobUrl(blobUrl: string): Promise<string | null> {
+  const name = blobNameFromAzureBlobUrl(blobUrl);
+  if (!name) return null;
+  return getSasUrl(name);
 }
 
 export async function getSasUrl(blobName: string): Promise<string> {
@@ -81,7 +104,8 @@ export async function getSasUrl(blobName: string): Promise<string> {
   const sharedKey = new StorageSharedKeyCredential(account, key);
 
   const startsOn = new Date(Date.now() - 5 * 60 * 1000);
-  const expiresOn = new Date(Date.now() + 60 * 60 * 1000);
+  // Certificates may be previewed in an iframe or shared; keep a practical TTL.
+  const expiresOn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const sas = generateBlobSASQueryParameters(
     {

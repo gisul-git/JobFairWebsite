@@ -56,46 +56,47 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
       initial={{ opacity: 0, y: -56 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="absolute left-0 right-0 top-0 z-50 h-[64px] sm:h-[72px]"
+      className="absolute left-0 right-0 top-0 z-50 pt-[env(safe-area-inset-top,0px)]"
       style={{
         backgroundColor: "transparent",
         borderBottom: "none",
       }}
     >
-      <div className="mx-auto flex h-full items-center px-4" style={{ maxWidth: 1440 }}>
-        <div className="flex items-center">
-          <img src="/gisul-logo.png" alt="GISUL" className="h-10 w-auto object-contain sm:h-30" />
+      <div
+        className="mx-auto flex h-16 min-w-0 items-center gap-2 px-3 sm:h-[72px] sm:gap-3 sm:px-4"
+        style={{ maxWidth: 1440 }}
+      >
+        <div className="flex shrink-0 items-center">
+          <img src="/gisul-logo.png" alt="GISUL" className="h-9 w-auto object-contain sm:h-30" />
           <span
             className="mx-2 hidden sm:inline-block"
             style={{ width: 1, height: 20, backgroundColor: "rgba(241, 220, 186, 0.2)" }}
           />
         </div>
 
-        <div className="mx-auto flex h-full flex-1 flex-col justify-center">
+        <div className="mx-auto flex h-full min-w-0 flex-1 flex-col justify-center px-1 sm:px-2">
           <div
-            className="text-center"
+            className="text-center text-[9px] tracking-[0.1em] sm:text-[10px] sm:tracking-[0.15em]"
             style={{
               color: "rgba(241, 220, 186, 0.4)",
-              fontSize: 10,
-              letterSpacing: "0.15em",
               fontWeight: 600,
             }}
           >
             YOUR PROGRESS
           </div>
           <div
-            className="mt-[2px] text-center"
+            className="mt-[2px] truncate text-center"
             style={{
               color: "rgba(241, 220, 186, 0.55)",
               fontSize: 11,
-              letterSpacing: "0.08em",
+              letterSpacing: "0.06em",
               fontWeight: 700,
             }}
           >
             {currentLabel}
           </div>
 
-          <div className="mt-1 h-[6px] w-full rounded-full" style={{ backgroundColor: "rgba(241, 220, 186, 0.1)" }}>
+          <div className="mt-1 h-[6px] w-full min-w-0 rounded-full" style={{ backgroundColor: "rgba(241, 220, 186, 0.1)" }}>
             <motion.div
               initial={{ width: "0%" }}
               animate={{ width: `${targetPct}%` }}
@@ -109,7 +110,7 @@ export default function PointsBar(props: { points: number; maxPoints: number; cu
           </div>
         </div>
 
-        <div className="flex items-center justify-end">
+        <div className="flex shrink-0 items-center justify-end">
           <span className="text-[17px] font-extrabold sm:text-[20px]" style={{ color: "#f4e401" }}>
             {displayedPoints}
           </span>

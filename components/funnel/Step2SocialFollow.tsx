@@ -284,7 +284,7 @@ export default function Step2SocialFollow(props: {
 
   return (
     <section
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
+      className="relative flex min-h-[100dvh] min-h-screen flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-6 pt-[calc(5.25rem+env(safe-area-inset-top,0px))] pb-8 sm:pt-[calc(6rem+env(safe-area-inset-top,0px))] sm:pb-10"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />

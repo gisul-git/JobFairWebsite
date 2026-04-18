@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { nanoid } from "nanoid";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { IUser } from "@/types";
 
@@ -27,34 +27,81 @@ export default function Step4Certificate(props: {
 
   const certificateId = useMemo(() => nanoid(12), []);
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!blobUrl) {
+        setPreviewUrl(null);
+        return;
+      }
+      const readable = await getReadableCertificateUrl(blobUrl);
+      if (!cancelled) setPreviewUrl(readable);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [blobUrl]);
+
+  function hasLikelySas(u: string) {
+    try {
+      const parsed = new URL(u);
+      return parsed.searchParams.has("sig") || parsed.searchParams.has("sv");
+    } catch {
+      return false;
+    }
+  }
+
+  async function getReadableCertificateUrl(stored: string): Promise<string | null> {
+    try {
+      if (hasLikelySas(stored)) {
+        const head = await fetch(stored, { method: "HEAD" });
+        if (head.ok) return stored;
+      }
+      const res = await fetch(`/api/certificate/sas?url=${encodeURIComponent(stored)}`);
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok && json.data?.url) return String(json.data.url);
+    } catch {
+      // fall through
+    }
+    return null;
+  }
+
+  async function requestGenerateCertificate() {
+    if (!props.userId) return null;
+    const res = await fetch("/api/certificate/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: props.userId }),
+    });
+    const json = (await res.json()) as any;
+    if (!res.ok || !json?.ok) return null;
+    const url = json.data?.blobUrl as string | undefined;
+    if (url) {
+      props.setUserData({
+        ...props.userData,
+        certificate: {
+          ...(props.userData.certificate as any),
+          blobUrl: url,
+          issued: true,
+          issuedAt: new Date().toISOString() as any,
+        },
+      });
+    }
+    return url ?? null;
+  }
+
   async function ensureCertificate() {
     if (!props.userId) return null;
-    if (blobUrl) return blobUrl;
+    if (blobUrl) {
+      const readable = await getReadableCertificateUrl(blobUrl);
+      if (readable) return readable;
+    }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/certificate/generate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId: props.userId }),
-      });
-      const json = (await res.json()) as any;
-      if (res.ok && json?.ok) {
-        const url = json.data?.blobUrl as string | undefined;
-        if (url) {
-          props.setUserData({
-            ...props.userData,
-            certificate: {
-              ...(props.userData.certificate as any),
-              blobUrl: url,
-              issued: true,
-              issuedAt: new Date().toISOString() as any,
-            },
-          });
-        }
-        return url ?? null;
-      }
-      return null;
+      return await requestGenerateCertificate();
     } finally {
       setLoading(false);
     }
@@ -124,9 +171,9 @@ export default function Step4Certificate(props: {
               <li>AI Fundamentals</li>
               <li>Soft Skills for the Future</li>
             </ul>
-            {blobUrl ? (
+            {previewUrl ? (
               <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-white">
-                <iframe src={blobUrl} title="Certificate preview" className="h-[260px] w-full sm:h-[360px] lg:h-[420px]" />
+                <iframe src={previewUrl} title="Certificate preview" className="h-[260px] w-full sm:h-[360px] lg:h-[420px]" />
               </div>
             ) : null}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-cream/80">

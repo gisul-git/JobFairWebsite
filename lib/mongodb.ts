@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 type MongooseCache = {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
+  migrationDone: boolean;
 };
 
 declare global {
@@ -13,6 +14,7 @@ declare global {
 const cache: MongooseCache = globalThis._mongooseCache ?? {
   conn: null,
   promise: null,
+  migrationDone: false,
 };
 
 globalThis._mongooseCache = cache;
@@ -34,6 +36,24 @@ export async function connectDB(): Promise<typeof mongoose> {
   }
 
   cache.conn = await cache.promise;
+
+  if (!cache.migrationDone) {
+    try {
+      const users = cache.conn.connection.db?.collection("users");
+      if (users) {
+        const indexes = await users.indexes();
+        const hasLegacyReferralIndex = indexes.some((idx) => idx.name === "referralCode_1");
+        if (hasLegacyReferralIndex) {
+          await users.dropIndex("referralCode_1");
+        }
+      }
+    } catch {
+      // Ignore index cleanup failures in runtime; app should still boot.
+    } finally {
+      cache.migrationDone = true;
+    }
+  }
+
   return cache.conn;
 }
 

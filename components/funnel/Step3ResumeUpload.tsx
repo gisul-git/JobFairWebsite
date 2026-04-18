@@ -34,28 +34,27 @@ function formatBytes(bytes: number) {
 
 function CloudUploadIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      {/* Feather “cloud-upload”; geometry fits 24×24 so strokes are not clipped */}
       <path
-        d="M12 16V8"
+        d="M16 16l-4-4-4 4M12 12v9"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M8 11l4-4 4 4"
+        d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <path
-        d="M4 16.5c0-1.93 1.57-3.5 3.5-3.5h.7A5.5 5.5 0 0 1 18.7 14H19.5A2.5 2.5 0 1 1 19.5 19h-15A2.5 2.5 0 0 1 2 16.5z"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.9"
+        opacity={0.92}
       />
     </svg>
   );
@@ -283,7 +282,7 @@ export default function Step3ResumeUpload(props: {
 
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-10"
+      className="relative flex min-h-[100dvh] min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-4 pb-8 pt-[calc(5.25rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pb-10 sm:pt-[calc(6rem+env(safe-area-inset-top,0px))]"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />
@@ -325,13 +324,13 @@ export default function Step3ResumeUpload(props: {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-xl rounded-[24px] border border-[#6952a2]/35 bg-[#0d0d1a]/40 p-5 sm:p-8 backdrop-blur-2xl">
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-xl rounded-[24px] border border-[#6952a2]/35 bg-[#0d0d1a]/40 p-5 sm:p-8 backdrop-blur-2xl">
         <div className="text-center">
-          <div className="rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-4 py-2 text-center text-[12px] font-semibold tracking-[0.2em] text-[#f4e401]">
+          <div className="rounded-full border border-[#f4e401]/30 bg-[#f4e401]/10 px-3 py-2 text-center text-[11px] font-semibold tracking-[0.12em] text-[#f4e401] sm:px-4 sm:text-[12px] sm:tracking-[0.2em]">
             Step 3 of 7
           </div>
-          <h2 className="mt-4 text-2xl font-extrabold text-white sm:text-3xl">Upload Your Resume</h2>
-          <p className="mt-3 text-sm sm:text-base" style={{ color: "rgba(241,220,186,0.7)" }}>
+          <h2 className="mt-4 text-balance text-2xl font-extrabold text-white sm:text-3xl">Upload Your Resume</h2>
+          <p className="mt-3 text-balance text-sm sm:text-base" style={{ color: "rgba(241,220,186,0.7)" }}>
             Share your resume to be considered for roles in GISUL&apos;s partner network
           </p>
         </div>
@@ -358,7 +357,7 @@ export default function Step3ResumeUpload(props: {
               </div>
               <div className="flex-1">
                 <div className="text-xl font-extrabold text-white">Resume Already Uploaded</div>
-                <div className="mt-2 text-sm font-medium text-[#f1dcba]/80">
+                <div className="mt-2 break-words text-sm font-medium text-[#f1dcba]/80">
                   Filename: {props.userData.resume.filename ?? "Uploaded resume"}
                 </div>
                 <div className="mt-1 text-sm font-medium text-[#f1dcba]/80">
@@ -472,8 +471,8 @@ export default function Step3ResumeUpload(props: {
                 textAlign: "center",
               }}
             >
-              <div className="mx-auto" style={{ color: "#6952a2" }}>
-                <CloudUploadIcon className="mx-auto h-10 w-10 text-[#6952a2]" />
+              <div className="mx-auto flex justify-center text-[#6952a2]">
+                <CloudUploadIcon className="block h-11 w-11 shrink-0 text-[#6952a2]" />
               </div>
               <div className="mt-4 text-[15px] font-bold text-white">Drag & drop your resume here</div>
               <div className="mt-2 text-sm font-semibold" style={{ color: "rgba(241,220,186,0.4)" }}>
@@ -486,9 +485,9 @@ export default function Step3ResumeUpload(props: {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="w-full min-w-0">
               <div
-                className="inline-flex items-center gap-3 rounded-full border px-5 py-3"
+                className="flex w-full max-w-full items-center gap-2 rounded-full border px-4 py-3 sm:gap-3 sm:px-5"
                 style={{
                   background: "rgba(105,82,162,0.2)",
                   borderColor: "#6952a2",
@@ -548,7 +547,7 @@ export default function Step3ResumeUpload(props: {
             whileTap={{ scale: 0.98 }}
             onClick={() => void onUpload()}
             disabled={uploading || !selectedFile}
-            className="relative w-full overflow-hidden rounded-full px-8 py-4 text-[16px] font-bold text-[#1a1a2e]"
+            className="relative w-full overflow-hidden rounded-full px-4 py-4 text-center text-[14px] font-bold leading-snug text-[#1a1a2e] sm:px-8 sm:text-[16px]"
             style={{
               background: "#f4e401",
               boxShadow: "0 0 40px rgba(244,228,1,0.35)",

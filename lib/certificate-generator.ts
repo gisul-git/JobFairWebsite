@@ -21,318 +21,530 @@ function buildCertificateHtml(input: { name: string; downloadedDate: string; cer
 
   const certificateHTML = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GISUL Certificate</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Cinzel:wght@400;600;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  
+
   body {
-    width: 1056px;
-    height: 748px;
-    background: #ffffff;
-    font-family: 'Georgia', serif;
-    position: relative;
+    width: 1122px;
+    height: 794px;
+    background: #fff;
+    font-family: 'Lato', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
   }
 
-  .outer-border {
+  .cert {
+    width: 1122px;
+    height: 794px;
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  /* ── Outer border frame ── */
+  .border-outer {
     position: absolute;
     inset: 0;
-    border-top: 18px solid #6952a2;
-    border-left: 18px solid #6952a2;
-    border-bottom: 18px solid #f4e401;
-    border-right: 18px solid #f4e401;
+    border: 14px solid #2D1B69;
+    z-index: 2;
+    pointer-events: none;
   }
-
-  .inner-border {
+  .border-inner {
     position: absolute;
-    inset: 26px;
-    border: 2px solid #6952a2;
-    opacity: 0.4;
+    inset: 14px;
+    border: 3px solid #F4E401;
+    z-index: 2;
+    pointer-events: none;
   }
-
-  .corner-dots {
+  .border-accent {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    padding: 4px;
+    inset: 22px;
+    border: 1px solid rgba(45,27,105,0.15);
+    z-index: 2;
+    pointer-events: none;
   }
-  .corner-dots span {
-    width: 5px;
-    height: 5px;
-    background: #f4e401;
-    border-radius: 50%;
-    display: block;
-  }
-  .dots-tl { top: 36px; left: 36px; }
-  .dots-tr { top: 36px; right: 36px; }
-  .dots-bl { bottom: 36px; left: 36px; }
-  .dots-br { bottom: 36px; right: 36px; }
 
+  /* ── Background watermark ── */
+  .watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .watermark-text {
+    font-family: 'Cinzel', serif;
+    font-size: 180px;
+    font-weight: 900;
+    color: rgba(244,228,1,0.045);
+    letter-spacing: 0.05em;
+    transform: rotate(-25deg);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  /* ── Corner ornaments ── */
+  .corner {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    z-index: 3;
+  }
+  .corner svg { width: 100%; height: 100%; }
+  .corner-tl { top: 28px; left: 28px; }
+  .corner-tr { top: 28px; right: 28px; transform: scaleX(-1); }
+  .corner-bl { bottom: 28px; left: 28px; transform: scaleY(-1); }
+  .corner-br { bottom: 28px; right: 28px; transform: scale(-1); }
+
+  /* ── Left decorative stripe ── */
+  .left-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(180deg, #F4E401 0%, #2D1B69 50%, #F4E401 100%);
+    z-index: 3;
+  }
+  .right-stripe {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(180deg, #F4E401 0%, #2D1B69 50%, #F4E401 100%);
+    z-index: 3;
+  }
+
+  /* ── Main content ── */
   .content {
     position: absolute;
-    inset: 18px;
+    inset: 30px 38px;
+    z-index: 4;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 80px;
   }
 
-  .logo-row {
+  /* ── Header row ── */
+  .header {
     width: 100%;
     display: flex;
-    align-items: center;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: 8px;
   }
-
+  .logo-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .logo-img {
-    height: 54px;
+    height: 44px;
     width: auto;
+    max-width: 220px;
     object-fit: contain;
   }
-
-  .cert-title {
-    font-family: 'Arial Black', sans-serif;
-    font-size: 42px;
-    font-weight: 900;
-    letter-spacing: 0.18em;
-    color: #1a1a2e;
-    text-transform: uppercase;
-    margin-top: 4px;
-    margin-bottom: 2px;
-  }
-
-  .cert-subtitle {
-    font-family: 'Arial', sans-serif;
-    font-size: 13px;
+  .logo-sub {
+    font-family: 'Lato', sans-serif;
+    font-size: 8px;
     font-weight: 700;
-    letter-spacing: 0.3em;
-    color: #f4e401;
+    letter-spacing: 0.28em;
+    color: #F4E401;
+    background: #2D1B69;
+    padding: 2px 6px;
+    margin-top: 3px;
     text-transform: uppercase;
-    margin-bottom: 20px;
   }
 
-  .divider-line {
-    width: 80px;
-    height: 2px;
-    background: #f4e401;
-    margin: 0 auto 16px;
+  .header-dots {
+    display: grid;
+    grid-template-columns: repeat(5, 7px);
+    gap: 4px;
+    opacity: 0.6;
   }
+  .header-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #2D1B69;
+    display: block;
+  }
+  .header-dots span:nth-child(n+6) { background: #F4E401; }
 
-  .presented-to {
-    font-family: 'Arial', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    color: #888;
+  /* ── Title block ── */
+  .title-block {
+    text-align: center;
+    margin-top: 12px;
+  }
+  .title-label {
+    font-family: 'Lato', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5em;
+    color: #F4E401;
     text-transform: uppercase;
+    background: #2D1B69;
+    display: inline-block;
+    padding: 4px 18px;
     margin-bottom: 10px;
   }
-
-  .candidate-name {
-    font-family: 'Georgia', serif;
-    font-size: 52px;
-    font-weight: 700;
-    color: #1a1a2e;
-    margin-bottom: 8px;
-    text-align: center;
+  .title-main {
+    font-family: 'Cinzel', serif;
+    font-size: 58px;
+    font-weight: 900;
+    color: #2D1B69;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
   }
-
-  .name-underline {
-    width: 320px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #f4e401, transparent);
-    margin: 0 auto 20px;
-  }
-
-  .completion-text {
-    font-family: 'Arial', sans-serif;
+  .title-sub {
+    font-family: 'Cinzel', serif;
     font-size: 13px;
-    color: #555;
-    text-align: center;
-    margin-bottom: 4px;
-    letter-spacing: 0.05em;
-  }
-
-  .course-name {
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: #6952a2;
-    margin-bottom: 4px;
-  }
-
-  .cert-id {
-    font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    color: #aaa;
-    letter-spacing: 0.1em;
-    margin-bottom: 24px;
-  }
-
-  .footer-row {
-    width: 100%;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-top: auto;
-    padding: 0 12px;
-    gap: 24px;
-  }
-
-  .signatory {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .signature-text {
-    font-family: 'Georgia', serif;
-    font-size: 18px;
-    font-style: italic;
-    color: #1a1a2e;
-    border-bottom: 1.5px solid #333;
-    padding-bottom: 4px;
-    min-width: 140px;
-    text-align: center;
-  }
-
-  .signatory-name {
-    font-family: 'Arial', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: #1a1a2e;
-    letter-spacing: 0.05em;
-  }
-
-  .signatory-title {
-    font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    color: #6952a2;
-    letter-spacing: 0.1em;
+    font-weight: 400;
+    letter-spacing: 0.5em;
+    color: #5B4FCF;
+    margin-top: 4px;
     text-transform: uppercase;
   }
 
-  .badge {
+  /* ── Decorative rule ── */
+  .rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 10px;
+    width: 480px;
+  }
+  .rule-line { flex: 1; height: 1px; background: #2D1B69; opacity: 0.25; }
+  .rule-diamond {
+    width: 8px;
+    height: 8px;
+    background: #F4E401;
+    transform: rotate(45deg);
+    border: 1px solid #2D1B69;
+    flex-shrink: 0;
+  }
+
+  /* ── Presenter text ── */
+  .presented-to {
+    font-family: 'Lato', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.38em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* ── Recipient name ── */
+  .recipient {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 72px;
+    font-weight: 700;
+    font-style: italic;
+    color: #2D1B69;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-align: center;
+  }
+
+  /* ── Course info ── */
+  .course-wrap {
+    margin-top: 10px;
+    text-align: center;
+  }
+  .course-intro {
+    font-family: 'Lato', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .course-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2D1B69;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+  .course-name span { color: #5B4FCF; }
+
+  /* ── Footer row ── */
+  .footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+    padding-bottom: 10px;
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+
+  /* Left meta */
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .meta-row {
+    font-family: 'Lato', sans-serif;
+    font-size: 8.5px;
+    letter-spacing: 0.15em;
+    color: #888;
+    text-transform: uppercase;
+  }
+  .meta-row strong {
+    color: #2D1B69;
+    font-weight: 700;
+  }
+  .meta-program {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 600;
+    color: #5B4FCF;
+    letter-spacing: 0.3em;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* Signature */
+  .sig {
+    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+  }
+  .sig-script {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px;
+    font-style: italic;
+    color: #2D1B69;
+    line-height: 1;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .sig-line {
+    width: 160px;
+    height: 1px;
+    background: #2D1B69;
+    margin: 0 auto 5px;
+    opacity: 0.4;
+  }
+  .sig-name {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #2D1B69;
+    letter-spacing: 0.1em;
+  }
+  .sig-title {
+    font-family: 'Lato', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: #5B4FCF;
+    text-transform: uppercase;
+    margin-top: 2px;
   }
 
-  .badge-circle {
-    width: 90px;
-    height: 90px;
-    background: #f4e401;
+  /* Seal badge */
+  .seal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .seal-circle {
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
-    border: 4px solid #e6b800;
+    background: radial-gradient(circle at 38% 38%, #F4E401, #d4c000);
+    border: 3px solid #2D1B69;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    box-shadow: 0 4px 20px rgba(244,228,1,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
     position: relative;
   }
-
-  .badge-stars {
-    font-size: 14px;
-    color: #1a1a2e;
-    letter-spacing: 2px;
+  .seal-circle::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    border: 1px dashed rgba(45,27,105,0.5);
   }
-
-  .badge-text-main {
-    font-family: 'Arial Black', sans-serif;
-    font-size: 9px;
-    font-weight: 900;
-    color: #1a1a2e;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    line-height: 1.2;
+  .seal-stars { font-size: 10px; letter-spacing: 2px; color: #2D1B69; }
+  .seal-text {
+    font-family: 'Cinzel', serif;
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #2D1B69;
     text-align: center;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    padding: 0 6px;
+    margin-top: 4px;
   }
-
-  .badge-ribbon {
+  .seal-pin {
     width: 0;
     height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-top: 16px solid #e6b800;
-    margin-top: -2px;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 14px solid #2D1B69;
+    margin-top: -1px;
   }
-
-  .date-downloaded {
-    font-family: 'Arial', sans-serif;
-    font-size: 10px;
-    color: #aaa;
-    margin-bottom: 6px;
-    letter-spacing: 0.08em;
+  .seal-pin-inner {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 10px solid #d4c000;
   }
 </style>
 </head>
 <body>
+<div class="cert">
 
-  <div class="outer-border"></div>
-  <div class="inner-border"></div>
+  <div class="left-stripe"></div>
+  <div class="right-stripe"></div>
 
-  <div class="corner-dots dots-tl">
-    ${Array(16).fill("<span></span>").join("")}
-  </div>
-  <div class="corner-dots dots-tr">
-    ${Array(16).fill("<span></span>").join("")}
-  </div>
-  <div class="corner-dots dots-bl">
-    ${Array(16).fill("<span></span>").join("")}
-  </div>
-  <div class="corner-dots dots-br">
-    ${Array(16).fill("<span></span>").join("")}
+  <!-- Background watermark -->
+  <div class="watermark">
+    <div class="watermark-text">GISUL</div>
   </div>
 
+  <!-- Border frames -->
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+  <div class="border-accent"></div>
+
+  <!-- Corner ornaments -->
+  <div class="corner corner-tl">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4 L34 4 L34 8 L8 8 L8 34 L4 34 Z" fill="#2D1B69"/>
+      <path d="M10 10 L28 10 L28 13 L13 13 L13 28 L10 28 Z" fill="#F4E401"/>
+      <rect x="16" y="16" width="6" height="6" fill="#2D1B69" transform="rotate(45 19 19)"/>
+    </svg>
+  </div>
+  <div class="corner corner-tr">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4 L34 4 L34 8 L8 8 L8 34 L4 34 Z" fill="#2D1B69"/>
+      <path d="M10 10 L28 10 L28 13 L13 13 L13 28 L10 28 Z" fill="#F4E401"/>
+      <rect x="16" y="16" width="6" height="6" fill="#2D1B69" transform="rotate(45 19 19)"/>
+    </svg>
+  </div>
+  <div class="corner corner-bl">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4 L34 4 L34 8 L8 8 L8 34 L4 34 Z" fill="#2D1B69"/>
+      <path d="M10 10 L28 10 L28 13 L13 13 L13 28 L10 28 Z" fill="#F4E401"/>
+      <rect x="16" y="16" width="6" height="6" fill="#2D1B69" transform="rotate(45 19 19)"/>
+    </svg>
+  </div>
+  <div class="corner corner-br">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4 L34 4 L34 8 L8 8 L8 34 L4 34 Z" fill="#2D1B69"/>
+      <path d="M10 10 L28 10 L28 13 L13 13 L13 28 L10 28 Z" fill="#F4E401"/>
+      <rect x="16" y="16" width="6" height="6" fill="#2D1B69" transform="rotate(45 19 19)"/>
+    </svg>
+  </div>
+
+  <!-- Content -->
   <div class="content">
-    
-    <div class="logo-row">
-      <img class="logo-img" src="${logoSrc}" alt="GISUL" />
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-area">
+        <img class="logo-img" src="${logoSrc}" alt="GISUL" />
+        <div class="logo-sub">Learning Program</div>
+      </div>
+      <div class="header-dots">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
     </div>
 
-    <div class="cert-title">Certificate</div>
-    <div class="cert-subtitle">of successful completion</div>
-    <div class="divider-line"></div>
+    <!-- Title -->
+    <div class="title-block">
+      <div class="title-label">Award of Excellence</div>
+      <div class="title-main">Certificate</div>
+      <div class="title-sub">of Successful Completion</div>
+    </div>
 
-    <div class="presented-to">This certificate is proudly presented to</div>
+    <!-- Divider -->
+    <div class="rule">
+      <div class="rule-line"></div>
+      <div class="rule-diamond"></div>
+      <div class="rule-line"></div>
+      <div class="rule-diamond"></div>
+      <div class="rule-line"></div>
+    </div>
 
-    <div class="candidate-name">${userName}</div>
-    <div class="name-underline"></div>
+    <!-- Presented to -->
+    <div class="presented-to">This Certificate is Proudly Presented To</div>
 
-    <div class="completion-text">For Successful Completion Of Training On</div>
-    <div class="course-name">AI Fundamentals &amp; Soft Skills for the Future</div>
-    <div class="cert-id">Certificate ID: ${certificateId} &nbsp;|&nbsp; Downloaded: ${downloadedDate}</div>
+    <div class="recipient">${userName}</div>
 
-    <div class="footer-row">
-      <div class="signatory" style="align-items:flex-start;">
-        <div class="date-downloaded">Generated on demand</div>
-        <div class="signatory-title">GISUL Learning Program</div>
+    <!-- Course info -->
+    <div class="course-wrap">
+      <div class="course-intro">For Successful Completion of Training On</div>
+      <div class="course-name"><span>AI Fundamentals</span> &amp; <span>Soft Skills for the Future</span></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+
+      <div class="meta">
+        <div class="meta-row">Issue Date: <strong>${downloadedDate}</strong></div>
+        <div class="meta-row">Certificate ID: <strong style="font-family:monospace;letter-spacing:0.08em;">${certificateId}</strong></div>
+        <div class="meta-program">GISUL · Global Institute of Skills &amp; Upskilling in Learning</div>
       </div>
 
-      <div class="signatory">
-        <div class="signature-text">Sahil Goyal</div>
-        <div class="signatory-name">Sahil Goyal</div>
-        <div class="signatory-title">CEO, GISUL</div>
+      <div class="sig">
+        <div class="sig-script">Sahil Goyal</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">Sahil Goyal</div>
+        <div class="sig-title">Chief Executive Officer · GISUL</div>
       </div>
 
-      <div class="badge">
-        <div class="badge-circle">
-          <div class="badge-stars">★ ★ ★</div>
-          <div class="badge-text-main">Achievement<br/>Award</div>
+      <div class="seal">
+        <div class="seal-circle">
+          <div class="seal-stars">★ ★ ★</div>
+          <div class="seal-text">Achievement<br>Award</div>
         </div>
-        <div class="badge-ribbon"></div>
+        <div style="position:relative;width:18px;height:14px;margin-top:0;">
+          <div style="position:absolute;left:0;top:0;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid #2D1B69;"></div>
+          <div style="position:absolute;left:3px;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #d4c000;"></div>
+        </div>
       </div>
-    </div>
 
+    </div>
   </div>
 
+</div>
 </body>
 </html>
 `;
@@ -356,8 +568,11 @@ async function getBrowser() {
   return puppeteer.default.launch({ headless: true });
 }
 
-export async function generateCertificate(user: IUser): Promise<Buffer> {
-  const certificateId = nanoid(12);
+export async function generateCertificate(user: IUser & { certificateId?: string }): Promise<Buffer> {
+  const certificateId =
+    typeof user.certificateId === "string" && user.certificateId.trim().length > 0
+      ? user.certificateId.trim()
+      : nanoid(12);
   const downloadedDate = new Date().toLocaleDateString("en-IN", {
     day: "numeric",
     month: "long",
@@ -378,8 +593,8 @@ export async function generateCertificate(user: IUser): Promise<Buffer> {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
     const pdf = await page.pdf({
-      width: "1056px",
-      height: "748px",
+      width: "1122px",
+      height: "794px",
       printBackground: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
     });

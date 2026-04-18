@@ -196,7 +196,7 @@ export default function Step7HRContact(props: {
 
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pb-10 pt-[84px] sm:pt-[96px]"
+      className="relative flex min-h-[100dvh] min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto px-6 pb-10 pt-[calc(5.25rem+env(safe-area-inset-top,0px))] sm:pt-[calc(6rem+env(safe-area-inset-top,0px))]"
       style={{ background: "#0d0d1a" }}
     >
       <div className="absolute inset-0 z-0" />
