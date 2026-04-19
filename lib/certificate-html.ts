@@ -42,9 +42,8 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     height: 794px;
     background: radial-gradient(circle at top, #f3f2fb 0%, #eceaf4 45%, #fdfdfd 100%);
     font-family: 'Lato', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    position: relative;
   }
 
   .cert {
@@ -83,14 +82,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
 
   /* ── Background watermark ── */
   .watermark {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-    pointer-events: none;
-    overflow: hidden;
+    display: none;
   }
   .watermark-text {
     font-family: 'Cinzel', serif;
@@ -141,13 +133,20 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
   /* ── Main content ── */
   .content {
     position: absolute;
-    inset: 24px 46px 40px;
+    inset: 14px 46px 32px;
     z-index: 4;
     display: flex;
     flex-direction: column;
     align-items: center;
     max-width: 980px;
     margin: 0 auto;
+  }
+  .main-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: none;
   }
 
   /* ── Header row ── */
@@ -156,19 +155,19 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 22px;
-    padding-bottom: 14px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
   .logo-area {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 6px;
   }
   .logo-img {
-    height: 68px;
+    height: 90px;
     width: auto;
-    max-width: 220px;
+    max-width: 300px;
     object-fit: contain;
   }
   .logo-sub {
@@ -197,7 +196,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
   /* ── Title block ── */
   .title-block {
     text-align: center;
-    margin-top: 24px;
+    margin-top: 6px;
   }
   .title-label {
     font-family: 'Lato', sans-serif;
@@ -207,13 +206,17 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     color: #F4E401;
     text-transform: uppercase;
     background: #2D1B69;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 6px 22px;
-    margin-bottom: 16px;
+    margin: 0 auto 14px;
+    text-align: center;
+    min-width: 260px;
   }
   .title-main {
     font-family: 'Cinzel', serif;
-    font-size: 98px;
+    font-size: 92px;
     font-weight: 900;
     color: #2D1B69;
     letter-spacing: 0.12em;
@@ -227,7 +230,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     font-weight: 400;
     letter-spacing: 0.6em;
     color: #5B4FCF;
-    margin-top: 18px;
+    margin-top: 10px;
     text-transform: uppercase;
   }
 
@@ -236,7 +239,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 18px 0 14px;
+    margin: 16px 0 14px;
     width: 560px;
   }
   .rule-line { flex: 1; height: 1px; background: #2D1B69; opacity: 0.22; }
@@ -257,7 +260,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     letter-spacing: 0.34em;
     color: #7a7a7a;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     width: 100%;
     max-width: 920px;
     text-align: center;
@@ -267,17 +270,17 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
   /* ── Recipient name ── */
   .recipient {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 108px;
+    font-size: 94px;
     font-weight: 700;
     font-style: italic;
     color: #2D1B69;
     letter-spacing: 0.01em;
-    line-height: 0.96;
+    line-height: 1.02;
     text-align: center;
     align-self: stretch;
     width: 100%;
     max-width: 920px;
-    margin: 0 auto 18px;
+    margin: 0 auto 30px;
     padding: 0 40px;
     box-sizing: border-box;
     /* Italic glyphs often read optically right of true center */
@@ -286,7 +289,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
 
   /* ── Course info ── */
   .course-wrap {
-    margin-top: 18px;
+    margin-top: 20px;
     text-align: center;
     width: 100%;
     max-width: 920px;
@@ -299,6 +302,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     color: #5d5d84;
     text-transform: uppercase;
     font-weight: 500;
+    margin-bottom: 6px;
   }
   .course-name {
     font-family: 'Cormorant Garamond', serif;
@@ -323,6 +327,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     padding: 0 20px 24px;
     gap: 12px 16px;
     box-sizing: border-box;
+    transform: none;
   }
 
   /* Left meta */
@@ -373,14 +378,14 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     font-style: italic;
     color: #2D1B69;
     line-height: 1;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     font-weight: 600;
   }
   .sig-line {
     width: 180px;
     height: 1px;
     background: #2D1B69;
-    margin: 0 auto 6px;
+    margin: 0 auto 9px;
     opacity: 0.4;
   }
   .sig-name {
@@ -396,7 +401,7 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
     letter-spacing: 0.22em;
     color: #5B4FCF;
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 6px;
   }
 
   /* Seal badge */
@@ -532,31 +537,33 @@ export function buildCertificateHtml(input: { name: string; downloadedDate: stri
       <div class="header-tagline">Connecting Minds, Elevating Skills</div>
     </div>
 
-    <!-- Title -->
-    <div class="title-block">
-      <div class="title-label">Award of Excellence</div>
-      <div class="title-main">Certificate</div>
-      <div class="title-sub">of Successful Completion</div>
-    </div>
+    <div class="main-stack">
+      <!-- Title -->
+      <div class="title-block">
+        <div class="title-label">Award of Excellence</div>
+        <div class="title-main">Certificate</div>
+        <div class="title-sub">of Successful Completion</div>
+      </div>
 
-    <!-- Divider -->
-    <div class="rule">
-      <div class="rule-line"></div>
-      <div class="rule-diamond"></div>
-      <div class="rule-line"></div>
-      <div class="rule-diamond"></div>
-      <div class="rule-line"></div>
-    </div>
+      <!-- Divider -->
+      <div class="rule">
+        <div class="rule-line"></div>
+        <div class="rule-diamond"></div>
+        <div class="rule-line"></div>
+        <div class="rule-diamond"></div>
+        <div class="rule-line"></div>
+      </div>
 
-    <!-- Presented to -->
-    <div class="presented-to">This Certificate is Proudly Presented To</div>
+      <!-- Presented to -->
+      <div class="presented-to">This Certificate is Proudly Presented To</div>
 
-    <div class="recipient">${userName}</div>
+      <div class="recipient">${userName}</div>
 
-    <!-- Course info -->
-    <div class="course-wrap">
-      <div class="course-intro">For Successful Completion of Training On</div>
-      <div class="course-name"><span>AI Fundamentals</span> &amp; <span>Soft Skills for the Future</span></div>
+      <!-- Course info -->
+      <div class="course-wrap">
+        <div class="course-intro">For Successful Completion of Training On</div>
+        <div class="course-name"><span>AI Fundamentals</span> &amp; <span>Soft Skills for the Future</span></div>
+      </div>
     </div>
 
     <!-- Footer -->
