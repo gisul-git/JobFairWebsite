@@ -1,8 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { nanoid } from "nanoid";
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  postCertificateRecordOnly,
+  renderCertificatePdfBlob,
+  safeCertificateFileBase,
+} from "@/lib/certificate-client-pdf";
 import type { IUser } from "@/types";
 
 type ConfettiPiece = {
@@ -96,6 +102,10 @@ export default function Step7HRContact(props: {
   const [certificateLoading, setCertificateLoading] = useState(false);
 
   const name = props.userData?.name ?? "Candidate";
+  const persistedCertId = (props.userData?.certificate as { certificateId?: string } | undefined)?.certificateId;
+  const fallbackCertificateId = useMemo(() => nanoid(12), []);
+  const certificateIdForPdf = persistedCertId ?? fallbackCertificateId;
+
   const role = props.userData?.role === "BDE" ? "BDE" : props.userData?.role === "Fullstack" ? "Fullstack" : null;
   const roleLabel = role === "BDE" ? "Business Development Executive" : role === "Fullstack" ? "Full Stack Intern" : "Role not set";
   const syncUser = (updatedUser: Partial<IUser> & { _id?: string; id?: string }) => {
@@ -184,83 +194,77 @@ export default function Step7HRContact(props: {
     return null;
   }
 
-  async function requestGenerateCertificate() {
-    const userId = String(props.userData?._id ?? props.userData?.id ?? "").trim();
-    if (!userId) return null;
-
-    const res = await fetch("/api/certificate/generate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId }),
-    });
-    const json = (await res.json()) as any;
-    if (!res.ok || !json?.ok) return null;
-
-    const url = json.data?.blobUrl as string | undefined;
-    if (url) {
-      props.setUserData({
-        ...props.userData,
-        certificate: {
-          ...(props.userData.certificate as any),
-          blobUrl: url,
-          issued: true,
-          issuedAt: new Date().toISOString() as any,
-        },
-      });
+  async function resolveShareUrl(): Promise<string> {
+    const stored = props.userData?.certificate?.blobUrl;
+    if (stored) {
+      const readable = await getReadableCertificateUrl(stored);
+      if (readable) return readable;
     }
-    return url ?? null;
+    return window.location.href;
   }
 
-  async function ensureCertificateUrl() {
-    const blobUrl = props.userData?.certificate?.blobUrl;
-    if (blobUrl) {
-      const readable = await getReadableCertificateUrl(blobUrl);
-      if (readable) return readable;
+  async function onDownloadCertificate() {
+    const userId = String(props.userData?._id ?? props.userData?.id ?? "").trim();
+    if (!userId) {
+      props.showToast("Missing user account.", "error");
+      return;
     }
 
     setCertificateLoading(true);
     try {
-      return await requestGenerateCertificate();
+      const blob = await renderCertificatePdfBlob({
+        name,
+        certificateId: certificateIdForPdf,
+      });
+
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = `gisul-certificate-${safeCertificateFileBase(name) || "user"}.pdf`;
+        a.rel = "noopener noreferrer";
+        a.target = "_self";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+
+      if (!props.userData?.certificate?.issued) {
+        const recorded = await postCertificateRecordOnly(userId, certificateIdForPdf);
+        props.setUserData({
+          ...props.userData,
+          points: recorded.points ?? props.userData.points,
+          funnel: (recorded.funnel
+            ? { ...(props.userData.funnel ?? {}), ...recorded.funnel }
+            : props.userData.funnel) as IUser["funnel"],
+          certificate: {
+            ...(props.userData.certificate as any),
+            issued: true,
+            issuedAt: new Date().toISOString() as any,
+            certificateId: recorded.certificateId,
+            blobUrl: recorded.blobUrl ?? props.userData.certificate?.blobUrl,
+          },
+        });
+      }
+
+      props.showToast("Certificate downloaded successfully", "success");
+    } catch (e) {
+      console.error(e);
+      props.showToast("Could not generate certificate. Try again.", "error");
     } finally {
       setCertificateLoading(false);
     }
   }
 
-  async function onDownloadCertificate() {
-    const url = await ensureCertificateUrl();
-    if (!url) {
-      props.showToast("Could not download certificate. Try again.", "error");
-      return;
-    }
-
-    try {
-      const safeName = String(name ?? "certificate")
-        .trim()
-        .replace(/[^a-z0-9]+/gi, "-")
-        .replace(/^-+|-+$/g, "")
-        .toLowerCase();
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `gisul-certificate-${safeName || "user"}.pdf`;
-      a.rel = "noopener noreferrer";
-      a.target = "_self";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch {
-      const opened = window.open(url, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        window.location.href = url;
-      }
-    }
-
-    props.showToast("Certificate downloaded successfully", "success");
-  }
-
   async function onShareLinkedIn() {
-    const url = await ensureCertificateUrl();
+    const url = await resolveShareUrl();
+    if (url === window.location.href) {
+      props.showToast("Sharing this page — your certificate PDF is on your device.", "info");
+    }
     const shareUrl = new URL("https://www.linkedin.com/sharing/share-offsite/");
-    shareUrl.searchParams.set("url", url ?? window.location.href);
+    shareUrl.searchParams.set("url", url);
     window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
     props.showToast("Opened LinkedIn share", "success");
   }

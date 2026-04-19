@@ -2,8 +2,13 @@
 
 import { motion } from "framer-motion";
 import { nanoid } from "nanoid";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  postCertificateRecordOnly,
+  renderCertificatePdfBlob,
+  safeCertificateFileBase,
+} from "@/lib/certificate-client-pdf";
 import type { IUser } from "@/types";
 
 function formatDate(d?: Date | string) {
@@ -24,8 +29,13 @@ export default function Step4Certificate(props: {
   const blobUrl = props.userData?.certificate?.blobUrl;
   const issuedAt = props.userData?.certificate?.issuedAt as any;
   const name = props.userData?.name ?? "Your Name";
+  const persistedCertId = (props.userData?.certificate as { certificateId?: string } | undefined)?.certificateId;
 
-  const certificateId = useMemo(() => nanoid(12), []);
+  const fallbackCertificateId = useMemo(() => nanoid(12), []);
+  const certificateId = persistedCertId ?? fallbackCertificateId;
+
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const localPreviewRevokeRef = useRef<string | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -33,7 +43,7 @@ export default function Step4Certificate(props: {
     let cancelled = false;
     (async () => {
       if (!blobUrl) {
-        setPreviewUrl(null);
+        if (!cancelled) setPreviewUrl(null);
         return;
       }
       const readable = await getReadableCertificateUrl(blobUrl);
@@ -43,6 +53,15 @@ export default function Step4Certificate(props: {
       cancelled = true;
     };
   }, [blobUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewRevokeRef.current) {
+        URL.revokeObjectURL(localPreviewRevokeRef.current);
+        localPreviewRevokeRef.current = null;
+      }
+    };
+  }, []);
 
   function hasLikelySas(u: string) {
     try {
@@ -68,95 +87,89 @@ export default function Step4Certificate(props: {
     return null;
   }
 
-  async function requestGenerateCertificate() {
-    if (!props.userId) return null;
-    const res = await fetch("/api/certificate/generate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId: props.userId }),
-    });
-    let json: any = null;
-    try {
-      json = await res.json();
-    } catch {
-      json = null;
-    }
-    if (!res.ok || !json?.ok) return null;
-    const url = json.data?.blobUrl as string | undefined;
-    if (url) {
-      props.setUserData({
-        ...props.userData,
-        certificate: {
-          ...(props.userData.certificate as any),
-          blobUrl: url,
-          issued: true,
-          issuedAt: new Date().toISOString() as any,
-        },
-      });
-    }
-    return url ?? null;
-  }
-
-  async function ensureCertificate() {
-    if (!props.userId) return null;
+  async function resolveShareUrl(): Promise<string> {
     if (blobUrl) {
       const readable = await getReadableCertificateUrl(blobUrl);
       if (readable) return readable;
     }
+    return window.location.href;
+  }
+
+  async function onDownload() {
+    if (!props.userId) {
+      props.showToast("Missing user account.", "error");
+      return;
+    }
 
     setLoading(true);
     try {
-      return await requestGenerateCertificate();
+      const blob = await renderCertificatePdfBlob({
+        name,
+        certificateId,
+      });
+
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = `gisul-certificate-${safeCertificateFileBase(name) || "user"}.pdf`;
+        a.rel = "noopener noreferrer";
+        a.target = "_self";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+
+      const recorded = await postCertificateRecordOnly(props.userId, certificateId);
+
+      if (localPreviewRevokeRef.current) {
+        URL.revokeObjectURL(localPreviewRevokeRef.current);
+      }
+      const nextPreview = URL.createObjectURL(blob);
+      localPreviewRevokeRef.current = nextPreview;
+      setLocalPreviewUrl(nextPreview);
+
+      props.setUserData({
+        ...props.userData,
+        points: recorded.points ?? props.userData.points,
+        funnel: (recorded.funnel
+          ? { ...(props.userData.funnel ?? {}), ...recorded.funnel }
+          : props.userData.funnel) as IUser["funnel"],
+        certificate: {
+          ...(props.userData.certificate as any),
+          issued: true,
+          issuedAt: new Date().toISOString() as any,
+          certificateId: recorded.certificateId,
+          blobUrl: recorded.blobUrl ?? props.userData.certificate?.blobUrl,
+        },
+      });
+
+      setDownloaded(true);
+      props.showToast("Certificate downloaded successfully", "success");
+    } catch (e) {
+      console.error(e);
+      props.showToast("Could not generate certificate. Try again.", "error");
     } finally {
       setLoading(false);
     }
   }
 
-  async function onDownload() {
-    const url = await ensureCertificate();
-    if (!url) {
-      props.showToast("Could not download certificate. Try again.", "error");
-      return;
-    }
-
-    try {
-      // Use direct navigation to the signed blob URL.
-      // This avoids mobile browser issues with fetch/blob downloads across origins.
-      const safeName = String(name ?? "certificate")
-        .trim()
-        .replace(/[^a-z0-9]+/gi, "-")
-        .replace(/^-+|-+$/g, "")
-        .toLowerCase();
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `gisul-certificate-${safeName || "user"}.pdf`;
-      a.rel = "noopener noreferrer";
-      a.target = "_self";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setDownloaded(true);
-    } catch {
-      // Fallback for browsers that ignore download attribute on cross-origin URLs.
-      const opened = window.open(url, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        window.location.href = url;
-      }
-      setDownloaded(true);
-    }
-
-    props.showToast("Certificate downloaded successfully", "success");
-  }
-
   async function onShareLinkedIn() {
-    const url = await ensureCertificate();
+    const url = await resolveShareUrl();
+    if (url === window.location.href) {
+      props.showToast("Sharing this page — your certificate PDF is saved on your device.", "info");
+    }
     const shareUrl = new URL("https://www.linkedin.com/sharing/share-offsite/");
-    shareUrl.searchParams.set("url", url ?? window.location.href);
+    shareUrl.searchParams.set("url", url);
     window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
 
     props.showToast("Progress saved", "success");
     props.setCurrentStep(6);
   }
+
+  const iframeSrc = previewUrl ?? localPreviewUrl;
 
   return (
     <section className="px-4 py-10 sm:px-6 sm:py-16">
@@ -182,9 +195,9 @@ export default function Step4Certificate(props: {
               <li>AI Fundamentals</li>
               <li>Soft Skills for the Future</li>
             </ul>
-            {previewUrl ? (
+            {iframeSrc ? (
               <div className="mt-5 overflow-hidden rounded-xl border border-white/10 bg-white">
-                <iframe src={previewUrl} title="Certificate preview" className="h-[260px] w-full sm:h-[360px] lg:h-[420px]" />
+                <iframe src={iframeSrc} title="Certificate preview" className="h-[260px] w-full sm:h-[360px] lg:h-[420px]" />
               </div>
             ) : null}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-cream/80">
@@ -205,18 +218,18 @@ export default function Step4Certificate(props: {
               type="button"
               whileHover={{ scale: loading ? 1 : 1.03 }}
               whileTap={{ scale: loading ? 1 : 0.99 }}
-              onClick={onDownload}
+              onClick={() => void onDownload()}
               disabled={loading}
               className="inline-flex flex-1 items-center justify-center rounded-full bg-primary px-10 py-4 font-bold text-dark disabled:opacity-70"
             >
-              Download PDF
+              {loading ? "Preparing PDF…" : "Download PDF"}
             </motion.button>
 
             <motion.button
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.99 }}
-              onClick={onShareLinkedIn}
+              onClick={() => void onShareLinkedIn()}
               className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-10 py-4 font-bold text-white"
             >
               Share on LinkedIn
@@ -241,4 +254,3 @@ export default function Step4Certificate(props: {
     </section>
   );
 }
-

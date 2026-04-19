@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 type GenerateBody = {
   userId?: string;
+  recordOnly?: boolean;
+  certificateId?: string;
 };
 
 export async function POST(_req: Request): Promise<Response> {
@@ -45,6 +47,56 @@ export async function POST(_req: Request): Promise<Response> {
       return Response.json(body, { status: 400 });
     }
 
+    if (bodyJson.recordOnly === true) {
+      const incomingId =
+        typeof bodyJson.certificateId === "string" && bodyJson.certificateId.trim().length > 0
+          ? bodyJson.certificateId.trim()
+          : null;
+
+      if (!user.certificate.issued) {
+        const certificateId = incomingId ?? nanoid(12);
+        user.certificate.issued = true;
+        user.certificate.issuedAt = new Date();
+        (user.certificate as any).certificateId = certificateId;
+        user.funnel.currentStep = 6;
+        if (!user.funnel.completedSteps.includes(5)) {
+          user.funnel.completedSteps.push(5);
+        }
+        user.points = getPointsForStep(6);
+        await user.save();
+
+        const body: ApiResponse = {
+          ok: true,
+          data: {
+            certificateId,
+            blobUrl: user.certificate.blobUrl,
+            points: user.points,
+            funnel: user.funnel,
+          },
+        };
+        return Response.json(body, { status: 200 });
+      }
+
+      if (incomingId && !(user.certificate as { certificateId?: string }).certificateId) {
+        (user.certificate as any).certificateId = incomingId;
+        await user.save();
+      }
+
+      const certificateId =
+        (user.certificate as { certificateId?: string }).certificateId ?? incomingId ?? "";
+
+      const body: ApiResponse = {
+        ok: true,
+        data: {
+          certificateId,
+          blobUrl: user.certificate.blobUrl,
+          points: user.points,
+          funnel: user.funnel,
+        },
+      };
+      return Response.json(body, { status: 200 });
+    }
+
     const certificateId = nanoid(12);
     const pdf = await generateCertificate({ ...(user.toObject() as any), certificateId });
     const filename = `gisul-certificate-${user.id}-${certificateId}.pdf`;
@@ -53,6 +105,7 @@ export async function POST(_req: Request): Promise<Response> {
     user.certificate.issued = true;
     user.certificate.issuedAt = new Date();
     user.certificate.blobUrl = blobUrl;
+    (user.certificate as any).certificateId = certificateId;
     user.funnel.currentStep = 6;
     if (!user.funnel.completedSteps.includes(5)) {
       user.funnel.completedSteps.push(5);
@@ -62,7 +115,12 @@ export async function POST(_req: Request): Promise<Response> {
 
     const body: ApiResponse = {
       ok: true,
-      data: { blobUrl, certificateId },
+      data: {
+        blobUrl,
+        certificateId,
+        points: user.points,
+        funnel: user.funnel,
+      },
     };
     return Response.json(body, { status: 200 });
   } catch (error) {
@@ -71,4 +129,3 @@ export async function POST(_req: Request): Promise<Response> {
     return Response.json(body, { status: 500 });
   }
 }
-

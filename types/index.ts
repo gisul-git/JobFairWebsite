@@ -38,6 +38,7 @@ export interface IUser {
     issued: boolean;
     issuedAt?: Date;
     blobUrl?: string;
+    certificateId?: string;
     downloadCount: number;
   };
 

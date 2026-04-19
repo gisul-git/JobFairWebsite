@@ -128,6 +128,7 @@ const UserSchema = new Schema<IUser>(
       issued: { type: Boolean, default: false },
       issuedAt: { type: Date },
       blobUrl: { type: String },
+      certificateId: { type: String },
       downloadCount: { type: Number, default: 0 },
     },
 
