@@ -5,10 +5,14 @@ import { nanoid } from "nanoid";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  certificatePngToDataUrl,
   postCertificateRecordOnly,
+  postCertificateSharePreview,
   renderCertificatePdfBlob,
+  renderCertificatePngBlob,
   safeCertificateFileBase,
 } from "@/lib/certificate-client-pdf";
+import { normalizeShareUrlToCurrentOrigin } from "@/lib/public-site-url";
 import type { IUser } from "@/types";
 
 function formatDate(d?: Date | string) {
@@ -24,6 +28,7 @@ export default function Step4Certificate(props: {
   showToast: (message: string, type: "success" | "error" | "info") => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
   const blobUrl = props.userData?.certificate?.blobUrl;
@@ -85,14 +90,6 @@ export default function Step4Certificate(props: {
       // fall through
     }
     return null;
-  }
-
-  async function resolveShareUrl(): Promise<string> {
-    if (blobUrl) {
-      const readable = await getReadableCertificateUrl(blobUrl);
-      if (readable) return readable;
-    }
-    return window.location.href;
   }
 
   async function onDownload() {
@@ -157,16 +154,42 @@ export default function Step4Certificate(props: {
   }
 
   async function onShareLinkedIn() {
-    const url = await resolveShareUrl();
-    if (url === window.location.href) {
-      props.showToast("Sharing this page — your certificate PDF is saved on your device.", "info");
+    const sessionToken =
+      window.localStorage.getItem("gisul_token") ?? window.localStorage.getItem("gisul:sessionToken");
+    if (!sessionToken) {
+      props.showToast("Please sign in again to share.", "error");
+      return;
     }
-    const shareUrl = new URL("https://www.linkedin.com/sharing/share-offsite/");
-    shareUrl.searchParams.set("url", url);
-    window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
 
-    props.showToast("Progress saved", "success");
-    props.setCurrentStep(6);
+    setShareLoading(true);
+    try {
+      const png = await renderCertificatePngBlob({ name, certificateId });
+      const dataUrl = await certificatePngToDataUrl(png);
+      const { shareUrl, shareSlug } = await postCertificateSharePreview(sessionToken, dataUrl);
+
+      props.setUserData({
+        ...props.userData,
+        certificate: {
+          ...(props.userData.certificate as any),
+          shareSlug: shareSlug ?? (props.userData.certificate as any)?.shareSlug,
+        },
+      });
+
+      const linkedIn = new URL("https://www.linkedin.com/sharing/share-offsite/");
+      linkedIn.searchParams.set("url", normalizeShareUrlToCurrentOrigin(shareUrl));
+      window.open(linkedIn.toString(), "_blank", "noopener,noreferrer");
+
+      props.showToast("Opening LinkedIn — the post preview should show your certificate image.", "success");
+      props.setCurrentStep(6);
+    } catch (e) {
+      console.error(e);
+      props.showToast(
+        e instanceof Error ? e.message : "Could not prepare LinkedIn share. Try again.",
+        "error"
+      );
+    } finally {
+      setShareLoading(false);
+    }
   }
 
   const iframeSrc = previewUrl ?? localPreviewUrl;
@@ -227,12 +250,13 @@ export default function Step4Certificate(props: {
 
             <motion.button
               type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.99 }}
+              whileHover={{ scale: shareLoading || loading ? 1 : 1.02 }}
+              whileTap={{ scale: shareLoading || loading ? 1 : 0.99 }}
               onClick={() => void onShareLinkedIn()}
-              className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-10 py-4 font-bold text-white"
+              disabled={shareLoading || loading}
+              className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-10 py-4 font-bold text-white disabled:opacity-70"
             >
-              Share on LinkedIn
+              {shareLoading ? "Preparing share…" : "Share on LinkedIn"}
             </motion.button>
           </div>
 

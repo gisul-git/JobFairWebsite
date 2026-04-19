@@ -39,6 +39,8 @@ export interface IUser {
     issuedAt?: Date;
     blobUrl?: string;
     certificateId?: string;
+    /** Public share page slug for LinkedIn OG preview (`/share/certificate/[slug]`). */
+    shareSlug?: string;
     downloadCount: number;
   };
 

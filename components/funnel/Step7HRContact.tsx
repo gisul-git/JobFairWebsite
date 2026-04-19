@@ -5,10 +5,14 @@ import { nanoid } from "nanoid";
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  certificatePngToDataUrl,
   postCertificateRecordOnly,
+  postCertificateSharePreview,
   renderCertificatePdfBlob,
+  renderCertificatePngBlob,
   safeCertificateFileBase,
 } from "@/lib/certificate-client-pdf";
+import { normalizeShareUrlToCurrentOrigin } from "@/lib/public-site-url";
 import type { IUser } from "@/types";
 
 type ConfettiPiece = {
@@ -100,6 +104,7 @@ export default function Step7HRContact(props: {
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [certificateLoading, setCertificateLoading] = useState(false);
+  const [linkedInShareLoading, setLinkedInShareLoading] = useState(false);
 
   const name = props.userData?.name ?? "Candidate";
   const persistedCertId = (props.userData?.certificate as { certificateId?: string } | undefined)?.certificateId;
@@ -170,39 +175,6 @@ export default function Step7HRContact(props: {
     setFullAddress(props.userData?.address || "");
   }, [props.userData?.address]);
 
-  function hasLikelySas(url: string) {
-    try {
-      const parsed = new URL(url);
-      return parsed.searchParams.has("sig") || parsed.searchParams.has("sv");
-    } catch {
-      return false;
-    }
-  }
-
-  async function getReadableCertificateUrl(stored: string): Promise<string | null> {
-    try {
-      if (hasLikelySas(stored)) {
-        const head = await fetch(stored, { method: "HEAD" });
-        if (head.ok) return stored;
-      }
-      const res = await fetch(`/api/certificate/sas?url=${encodeURIComponent(stored)}`);
-      const json = (await res.json()) as any;
-      if (res.ok && json?.ok && json.data?.url) return String(json.data.url);
-    } catch {
-      // fall through
-    }
-    return null;
-  }
-
-  async function resolveShareUrl(): Promise<string> {
-    const stored = props.userData?.certificate?.blobUrl;
-    if (stored) {
-      const readable = await getReadableCertificateUrl(stored);
-      if (readable) return readable;
-    }
-    return window.location.href;
-  }
-
   async function onDownloadCertificate() {
     const userId = String(props.userData?._id ?? props.userData?.id ?? "").trim();
     if (!userId) {
@@ -259,14 +231,43 @@ export default function Step7HRContact(props: {
   }
 
   async function onShareLinkedIn() {
-    const url = await resolveShareUrl();
-    if (url === window.location.href) {
-      props.showToast("Sharing this page — your certificate PDF is on your device.", "info");
+    const sessionToken =
+      window.localStorage.getItem("gisul_token") ?? window.localStorage.getItem("gisul:sessionToken");
+    if (!sessionToken) {
+      props.showToast("Please sign in again to share.", "error");
+      return;
     }
-    const shareUrl = new URL("https://www.linkedin.com/sharing/share-offsite/");
-    shareUrl.searchParams.set("url", url);
-    window.open(shareUrl.toString(), "_blank", "noopener,noreferrer");
-    props.showToast("Opened LinkedIn share", "success");
+
+    setLinkedInShareLoading(true);
+    try {
+      const png = await renderCertificatePngBlob({
+        name,
+        certificateId: certificateIdForPdf,
+      });
+      const dataUrl = await certificatePngToDataUrl(png);
+      const { shareUrl, shareSlug } = await postCertificateSharePreview(sessionToken, dataUrl);
+
+      props.setUserData({
+        ...props.userData,
+        certificate: {
+          ...(props.userData.certificate as any),
+          shareSlug: shareSlug ?? (props.userData.certificate as any)?.shareSlug,
+        },
+      });
+
+      const linkedIn = new URL("https://www.linkedin.com/sharing/share-offsite/");
+      linkedIn.searchParams.set("url", normalizeShareUrlToCurrentOrigin(shareUrl));
+      window.open(linkedIn.toString(), "_blank", "noopener,noreferrer");
+      props.showToast("Opening LinkedIn — the post preview should show your certificate image.", "success");
+    } catch (e) {
+      console.error(e);
+      props.showToast(
+        e instanceof Error ? e.message : "Could not prepare LinkedIn share. Try again.",
+        "error"
+      );
+    } finally {
+      setLinkedInShareLoading(false);
+    }
   }
 
   async function saveAddress() {
@@ -476,22 +477,23 @@ export default function Step7HRContact(props: {
             <div className="flex flex-col gap-3 sm:flex-row">
               <motion.button
                 type="button"
-                whileHover={{ scale: certificateLoading ? 1 : 1.02 }}
-                whileTap={{ scale: certificateLoading ? 1 : 0.98 }}
+                whileHover={{ scale: certificateLoading || linkedInShareLoading ? 1 : 1.02 }}
+                whileTap={{ scale: certificateLoading || linkedInShareLoading ? 1 : 0.98 }}
                 onClick={() => void onDownloadCertificate()}
-                disabled={certificateLoading}
+                disabled={certificateLoading || linkedInShareLoading}
                 className="inline-flex flex-1 items-center justify-center rounded-full bg-[#f4e401] px-6 py-3 text-sm font-bold text-[#1a1a2e] disabled:opacity-70"
               >
                 {certificateLoading ? "Preparing certificate..." : "Download Certificate"}
               </motion.button>
               <motion.button
                 type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: certificateLoading || linkedInShareLoading ? 1 : 1.02 }}
+                whileTap={{ scale: certificateLoading || linkedInShareLoading ? 1 : 0.98 }}
                 onClick={() => void onShareLinkedIn()}
-                className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-6 py-3 text-sm font-bold text-white"
+                disabled={certificateLoading || linkedInShareLoading}
+                className="inline-flex flex-1 items-center justify-center rounded-full border border-[#0A66C2] bg-transparent px-6 py-3 text-sm font-bold text-white disabled:opacity-70"
               >
-                Share on LinkedIn
+                {linkedInShareLoading ? "Preparing share…" : "Share on LinkedIn"}
               </motion.button>
             </div>
           </div>

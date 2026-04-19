@@ -34,10 +34,7 @@ export type ClientCertificatePdfInput = {
   logoSrc?: string;
 };
 
-/**
- * Renders the certificate HTML to a PDF Blob in the browser (no Puppeteer / Chromium).
- */
-export async function renderCertificatePdfBlob(input: ClientCertificatePdfInput): Promise<Blob> {
+async function captureCertificateCanvas(input: ClientCertificatePdfInput): Promise<HTMLCanvasElement> {
   const downloadedDate =
     input.downloadedDate ??
     new Date().toLocaleDateString("en-IN", {
@@ -89,10 +86,7 @@ export async function renderCertificatePdfBlob(input: ClientCertificatePdfInput)
     throw new Error("Certificate markup missing");
   }
 
-  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf"),
-  ]);
+  const { default: html2canvas } = await import("html2canvas");
 
   const canvas = await html2canvas(root, {
     scale: 2,
@@ -107,6 +101,16 @@ export async function renderCertificatePdfBlob(input: ClientCertificatePdfInput)
   });
 
   iframe.remove();
+  return canvas;
+}
+
+/**
+ * Renders the certificate HTML to a PDF Blob in the browser (no Puppeteer / Chromium).
+ */
+export async function renderCertificatePdfBlob(input: ClientCertificatePdfInput): Promise<Blob> {
+  const canvas = await captureCertificateCanvas(input);
+
+  const { default: jsPDF } = await import("jspdf");
 
   const pdf = new jsPDF({
     orientation: "landscape",
@@ -118,6 +122,30 @@ export async function renderCertificatePdfBlob(input: ClientCertificatePdfInput)
   pdf.addImage(imgData, "JPEG", 0, 0, CERT_W, CERT_H, undefined, "FAST");
 
   return pdf.output("blob");
+}
+
+/** PNG snapshot of the certificate (for LinkedIn Open Graph upload). */
+export async function renderCertificatePngBlob(input: ClientCertificatePdfInput): Promise<Blob> {
+  const canvas = await captureCertificateCanvas(input);
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => {
+        if (b) resolve(b);
+        else reject(new Error("Could not encode certificate image"));
+      },
+      "image/png",
+      0.95
+    );
+  });
+}
+
+export function certificatePngToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 export async function postCertificateRecordOnly(userId: string, certificateId: string): Promise<{
@@ -146,6 +174,32 @@ export async function postCertificateRecordOnly(userId: string, certificateId: s
     points: typeof json.data?.points === "number" ? json.data.points : undefined,
     funnel: json.data?.funnel as Partial<{ currentStep: number; completedSteps: number[] }> | undefined,
   };
+}
+
+export async function postCertificateSharePreview(
+  sessionToken: string,
+  imageDataUrl: string
+): Promise<{ shareUrl: string; shareSlug?: string }> {
+  const res = await fetch("/api/certificate/share-preview", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    body: JSON.stringify({ imageBase64: imageDataUrl }),
+  });
+  let json: any = null;
+  try {
+    json = await res.json();
+  } catch {
+    json = null;
+  }
+  if (!res.ok || !json?.ok) {
+    throw new Error(json?.error ?? "Unable to prepare LinkedIn share");
+  }
+  const shareUrl = json.data?.shareUrl as string | undefined;
+  if (!shareUrl) throw new Error("Missing share URL");
+  return { shareUrl, shareSlug: json.data?.shareSlug as string | undefined };
 }
 
 export function safeCertificateFileBase(name: string) {

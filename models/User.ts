@@ -42,6 +42,8 @@ export interface IUser {
     issued: boolean;
     issuedAt?: Date;
     blobUrl?: string;
+    certificateId?: string;
+    shareSlug?: string;
     downloadCount: number;
   };
 
@@ -129,6 +131,7 @@ const UserSchema = new Schema<IUser>(
       issuedAt: { type: Date },
       blobUrl: { type: String },
       certificateId: { type: String },
+      shareSlug: { type: String, unique: true, sparse: true },
       downloadCount: { type: Number, default: 0 },
     },
 

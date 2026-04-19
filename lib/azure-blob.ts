@@ -65,9 +65,14 @@ export async function uploadToBlob(buffer: Buffer, filename: string): Promise<st
 
   const blobClient = containerClient.getBlockBlobClient(filename);
 
-  const contentType = filename.toLowerCase().endsWith(".pdf")
+  const lower = filename.toLowerCase();
+  const contentType = lower.endsWith(".pdf")
     ? "application/pdf"
-    : "application/octet-stream";
+    : lower.endsWith(".png")
+      ? "image/png"
+      : lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+        ? "image/jpeg"
+        : "application/octet-stream";
 
   await blobClient.uploadData(buffer, {
     blobHTTPHeaders: { blobContentType: contentType },
@@ -99,6 +104,7 @@ export async function getReadSasForBlobUrl(blobUrl: string): Promise<string | nu
   return getSasUrl(name);
 }
 
+/** Read-only SAS URL for a blob path inside the configured container (e.g. `cert-share/abc.png`). */
 export async function getSasUrl(blobName: string): Promise<string> {
   const { account, key, container } = getConfig();
   const sharedKey = new StorageSharedKeyCredential(account, key);
@@ -119,6 +125,18 @@ export async function getSasUrl(blobName: string): Promise<string> {
   ).toString();
 
   return `${getPublicBlobUrl(blobName)}?${sas}`;
+}
+
+/** Read blob bytes by path inside the configured container (e.g. `cert-share/abc.png`). */
+export async function readBlobBuffer(blobName: string): Promise<Buffer | null> {
+  try {
+    const { container } = getConfig();
+    const service = BlobServiceClient.fromConnectionString(getConnectionString());
+    const blobClient = service.getContainerClient(container).getBlockBlobClient(blobName);
+    return await blobClient.downloadToBuffer();
+  } catch {
+    return null;
+  }
 }
 
 /** Best-effort delete for an uploaded blob by its stored URL. */
