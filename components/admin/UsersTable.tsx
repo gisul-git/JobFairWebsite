@@ -10,6 +10,7 @@ export default function UsersTable() {
 
   const [search, setSearch] = useState("");
   const [step, setStep] = useState<string>("");
+  const [role, setRole] = useState<string>("");
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -17,6 +18,8 @@ export default function UsersTable() {
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const filterSelectClass =
+    "rounded-xl border border-white/15 bg-[#11162a] px-4 py-2.5 text-sm text-white outline-none transition focus:border-primary";
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -26,8 +29,9 @@ export default function UsersTable() {
     p.set("limit", String(limit));
     if (search.trim()) p.set("search", search.trim());
     if (step) p.set("step", step);
+    if (role) p.set("role", role);
     return p.toString();
-  }, [page, search, step]);
+  }, [page, role, search, step]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -70,6 +74,7 @@ export default function UsersTable() {
     const headers = [
       "Name",
       "Email",
+      "Role",
       "Phone",
       "College/Company",
       "Step",
@@ -108,6 +113,7 @@ export default function UsersTable() {
         [
           csvEscape(u?.name),
           csvEscape(u?.email),
+          csvEscape(u?.assessment?.role ?? u?.role ?? ""),
           csvEscape(u?.phone),
           csvEscape(u?.collegeOrCompany),
           csvEscape(u?.funnel?.currentStep ?? ""),
@@ -268,7 +274,8 @@ export default function UsersTable() {
               setStep(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm text-white outline-none transition focus:border-primary"
+            className={filterSelectClass}
+            style={{ colorScheme: "dark" }}
           >
             <option value="">All steps</option>
             {Array.from({ length: 7 }, (_, i) => i + 1).map((s) => (
@@ -276,6 +283,19 @@ export default function UsersTable() {
                 Step {s}
               </option>
             ))}
+          </select>
+          <select
+            value={role}
+            onChange={(e) => {
+              setRole(e.target.value);
+              setPage(1);
+            }}
+            className={filterSelectClass}
+            style={{ colorScheme: "dark" }}
+          >
+            <option value="">All roles</option>
+            <option value="BDE">BDE</option>
+            <option value="Fullstack">Fullstack</option>
           </select>
           <button
             type="button"
@@ -289,11 +309,12 @@ export default function UsersTable() {
 
       <div className="mt-5 overflow-hidden rounded-xl border border-white/10">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[1280px] border-separate border-spacing-y-2 text-sm lg:min-w-[1560px]">
+        <table className="w-full min-w-[1360px] border-separate border-spacing-y-2 text-sm lg:min-w-[1640px]">
           <thead className="sticky top-0 z-10 bg-[#161c33]">
             <tr className="text-left text-xs uppercase tracking-[0.08em] text-cream/80">
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
+              <th className="px-3 py-2">Role</th>
               <th className="hidden px-3 py-2 md:table-cell">Phone</th>
               <th className="hidden px-3 py-2 lg:table-cell">College/Company</th>
               <th className="px-3 py-2">Step</th>
@@ -312,13 +333,13 @@ export default function UsersTable() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={15} className="px-3 py-8 text-center text-cream/70">
+                <td colSpan={16} className="px-3 py-8 text-center text-cream/70">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={15} className="px-3 py-8 text-center text-cream/70">
+                <td colSpan={16} className="px-3 py-8 text-center text-cream/70">
                   No users found.
                 </td>
               </tr>
@@ -349,6 +370,7 @@ export default function UsersTable() {
                       {u?.name}
                     </td>
                     <td className="px-3 py-3 text-white/90">{u?.email}</td>
+                    <td className="px-3 py-3 text-white/90">{u?.assessment?.role ?? u?.role ?? "-"}</td>
                     <td className="hidden px-3 py-3 text-white/90 md:table-cell">{u?.phone}</td>
                     <td className="hidden px-3 py-3 text-white/90 lg:table-cell">{u?.collegeOrCompany}</td>
                     <td className="px-3 py-3 text-white/90">{u?.funnel?.currentStep ?? "-"}</td>

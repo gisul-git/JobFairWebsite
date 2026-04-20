@@ -24,6 +24,8 @@ export async function GET(_req: Request): Promise<Response> {
   const search = url.searchParams.get("search")?.trim();
   const stepRaw = url.searchParams.get("step")?.trim();
   const step = stepRaw ? Number(stepRaw) : undefined;
+  const roleRaw = url.searchParams.get("role")?.trim();
+  const role = roleRaw === "BDE" || roleRaw === "Fullstack" ? roleRaw : undefined;
 
   const filter: Record<string, unknown> = {};
 
@@ -36,6 +38,9 @@ export async function GET(_req: Request): Promise<Response> {
 
   if (typeof step === "number" && !Number.isNaN(step)) {
     filter["funnel.currentStep"] = step;
+  }
+  if (role) {
+    filter["role"] = role;
   }
 
   const [users, total, stepDistribution] = await Promise.all([
