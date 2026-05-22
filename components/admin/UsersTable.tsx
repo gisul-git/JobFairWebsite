@@ -11,6 +11,8 @@ export default function UsersTable() {
   const [search, setSearch] = useState("");
   const [step, setStep] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -30,8 +32,10 @@ export default function UsersTable() {
     if (search.trim()) p.set("search", search.trim());
     if (step) p.set("step", step);
     if (role) p.set("role", role);
+    if (dateFrom) p.set("dateFrom", dateFrom);
+    if (dateTo) p.set("dateTo", dateTo);
     return p.toString();
-  }, [page, role, search, step]);
+  }, [dateFrom, dateTo, page, role, search, step]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -297,6 +301,45 @@ export default function UsersTable() {
             <option value="BDE">BDE</option>
             <option value="Fullstack">Fullstack</option>
           </select>
+          <label className="flex flex-col gap-1 text-xs text-cream/70">
+            <span>From</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
+              className={`${filterSelectClass} w-full sm:w-auto`}
+              style={{ colorScheme: "dark" }}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-cream/70">
+            <span>To</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
+              className={`${filterSelectClass} w-full sm:w-auto`}
+              style={{ colorScheme: "dark" }}
+            />
+          </label>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+                setPage(1);
+              }}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+            >
+              Clear dates
+            </button>
+          )}
           <button
             type="button"
             onClick={exportCsv}
@@ -327,7 +370,7 @@ export default function UsersTable() {
               <th className="px-3 py-2">GitHub URL</th>
               <th className="px-3 py-2">Deployed URL</th>
               <th className="px-3 py-2">Actions</th>
-              <th className="hidden px-3 py-2 lg:table-cell">Registered At</th>
+              <th className="px-3 py-2">Registered At</th>
             </tr>
           </thead>
           <tbody>
@@ -454,7 +497,7 @@ export default function UsersTable() {
                         {deletingUserId === String(u?._id ?? u?.id ?? "") ? "Deleting..." : "Delete"}
                       </button>
                     </td>
-                    <td className="rounded-r-xl hidden px-3 py-3 text-white/90 lg:table-cell">
+                    <td className="rounded-r-xl px-3 py-3 whitespace-nowrap text-white/90">
                       {u?.registeredAt ? new Date(u.registeredAt).toLocaleString() : "-"}
                     </td>
                   </motion.tr>

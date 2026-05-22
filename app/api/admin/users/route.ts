@@ -26,6 +26,8 @@ export async function GET(_req: Request): Promise<Response> {
   const step = stepRaw ? Number(stepRaw) : undefined;
   const roleRaw = url.searchParams.get("role")?.trim();
   const role = roleRaw === "BDE" || roleRaw === "Fullstack" ? roleRaw : undefined;
+  const dateFromRaw = url.searchParams.get("dateFrom")?.trim();
+  const dateToRaw = url.searchParams.get("dateTo")?.trim();
 
   const filter: Record<string, unknown> = {};
 
@@ -41,6 +43,17 @@ export async function GET(_req: Request): Promise<Response> {
   }
   if (role) {
     filter["role"] = role;
+  }
+
+  const dateRange: { $gte?: Date; $lte?: Date } = {};
+  if (dateFromRaw && /^\d{4}-\d{2}-\d{2}$/.test(dateFromRaw)) {
+    dateRange.$gte = new Date(`${dateFromRaw}T00:00:00.000Z`);
+  }
+  if (dateToRaw && /^\d{4}-\d{2}-\d{2}$/.test(dateToRaw)) {
+    dateRange.$lte = new Date(`${dateToRaw}T23:59:59.999Z`);
+  }
+  if (dateRange.$gte || dateRange.$lte) {
+    filter.registeredAt = dateRange;
   }
 
   const [users, total, stepDistribution] = await Promise.all([
